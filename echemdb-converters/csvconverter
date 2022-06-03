@@ -1,0 +1,193 @@
+r"""
+Converter for CSV files (https://datatracker.ietf.org/doc/html/rfc4180)
+which consist of a single header line containing the column names
+and rows with comma separated data.
+
+The CSV object contains the following information:
+::TODO: Add examples for the following functions
+* a DataFrame
+* the column names
+* the header contents
+* the number of header lines
+* metadata
+
+Special converters for non standard CSV files can be called:
+
+::TODO: Add example
+
+"""
+# ********************************************************************
+#  This file is part of echemdb-converters.
+#
+#        Copyright (C) 2022 Albert Engstfeld
+#        Copyright (C) 2022 Johannes Hermann
+#        Copyright (C) 2022 Julian Rüth
+#
+#  echemdb-converters is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  echemdb-converters is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with echemdb-converters. If not, see <https://www.gnu.org/licenses/>.
+# ********************************************************************
+from functools import cache
+
+
+class CSVconverter:
+    r"""Reads a CSV, where the first line contains the column names
+    and the following lines comma separated data.
+
+    EXAMPLES::
+
+        >>> from io import StringIO
+
+        >>> file = StringIO(r'''a,b
+        ... 0,0
+        ... 1,1''')
+        >>> csv = CSVconverter(file)
+        >>> csv.df
+           a  b
+        0  0  0
+        1  1  1
+
+    A list of names describing the columns::
+
+        >>> csv.column_names
+        ['a', 'b']
+
+    More specific converters can be selected::
+    TODO:: Add example with csv.get_device('device')(file)
+
+    """
+    def __init__(self, file, metadata=None):
+        self._file = file.read()
+        self._metadata = metadata or {}
+
+    @property
+    def file(self):
+        r"""A file like object.
+
+        EXAMPLES::
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVconverter(file)
+            >>> type(csv.file)
+            <class '_io.StringIO'>
+
+        """
+        from io import StringIO
+        return StringIO(self._file)
+
+    @staticmethod
+    def get_converter(device=None):
+        r"""
+        Calls a specific converter class based on a given device.
+        """
+        # import here to avoid cyclical dependencies
+        from .thiolab_labview_converter import ThiolabLabviewConverter
+        from .genericcsvconverter import GenericCsvConverter
+        from .eclabconverter import EclabConverter
+        devices = {'generic' : GenericCsvConverter, # Generic CSV converter
+                   'eclab' : EclabConverter, # Biologic-EClab device
+                   'Thiolab Labview' : ThiolabLabviewConverter, # Labview data recorder formerly used in the thiolab
+                    }
+
+        if device in devices:
+            return devices[device]
+
+        raise KeyError(f"Device wth name '{device}' is unknown to the converter'.")
+
+    @property
+    def df(self):
+        r"""
+        A pandas dataframe of the CSV.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVconverter(file)
+            >>> csv.df
+               a  b
+            0  0  0
+            1  1  1
+
+        """
+        import pandas as pd
+
+        return pd.read_csv(self.file, header=self.header_lines)
+
+    @property
+    def header(self):
+        r"""
+        The header of the CVS file
+        (column names excluded).
+
+        A standard CSV file does not have a header.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVconverter(file)
+            >>> csv.header
+            []
+
+        """
+        lines = self.file.readlines()
+        return [lines[_] for _ in range(self.header_lines)]
+
+    @property
+    @cache
+    def column_names(self):
+        r"""List of column names describing the tabulated data.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVconverter(file)
+            >>> csv.column_names
+            ['a', 'b']
+
+        """
+        return self.df.columns.to_list()
+
+    @property
+    def header_lines(self):
+        r"""
+        The number of header lines of a CSV without column names.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVconverter(file)
+            >>> csv.header_lines
+            0
+
+        """
+        return 0
+
+    @property
+    def metadata(self):
+        r"""
+        Metadata constructed from the metadata file
+        and the CSV header"""
+        return self._metadata
