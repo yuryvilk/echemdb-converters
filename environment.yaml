@@ -1,0 +1,13 @@
+name: echemdb-converters
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - black
+  - isort
+  - pip
+  - pylint
+  - pytest
+  - pytest-doctestplus
+  - pytest-xdist
+  - pytest-remotedata
