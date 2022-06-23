@@ -3,7 +3,7 @@ Converter for CSV files (https://datatracker.ietf.org/doc/html/rfc4180)
 which consist of a single header line containing the column names
 and rows with comma separated data.
 
-The CSV object contains the following information:
+The CSV object has the following properties:
 ::TODO: Add examples for the following functions
 * a DataFrame
 * the column names
@@ -46,7 +46,6 @@ class CSVconverter:
     EXAMPLES::
 
         >>> from io import StringIO
-
         >>> file = StringIO(r'''a,b
         ... 0,0
         ... 1,1''')
@@ -92,9 +91,12 @@ class CSVconverter:
         Calls a specific converter class based on a given device.
         """
         # import here to avoid cyclical dependencies
-        from .thiolab_labview_converter import ThiolabLabviewConverter
-        from .genericcsvconverter import GenericCsvConverter
-        from .eclabconverter import EclabConverter
+        # TODO: Implement the following convberters
+        # TODO: from .thiolab_labview_converter import ThiolabLabviewConverter
+        # TODO: from .genericcsvconverter import GenericCsvConverter
+        # TODO: from .eclabconverter import EclabConverter
+        # The following dict is a placeholder for further specific converters.
+        # They hare here to get an idea what this function should do. These are currently not tested.
         devices = {'generic' : GenericCsvConverter, # Generic CSV converter
                    'eclab' : EclabConverter, # Biologic-EClab device
                    'Thiolab Labview' : ThiolabLabviewConverter, # Labview data recorder formerly used in the thiolab
@@ -188,6 +190,8 @@ class CSVconverter:
     @property
     def metadata(self):
         r"""
-        Metadata constructed from the metadata file
-        and the CSV header"""
+        Metadata constructed from input metadata and
+        and the CSV header
+        A simple CSV does not contain metadata.
+        """
         return self._metadata
