@@ -5,6 +5,7 @@ channels:
 dependencies:
   - black
   - isort
+  - pandas
   - pip
   - pylint
   - pytest
