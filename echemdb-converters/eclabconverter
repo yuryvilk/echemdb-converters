@@ -1,5 +1,5 @@
 r"""
-Converters MPT files recorded with the EC-Lab software from BioLogic for BioLogic potentiostats.
+Converts MPT files recorded with the EC-Lab software from BioLogic for BioLogic potentiostats.
 """
 # ********************************************************************
 #  This file is part of echemdb-converters.
