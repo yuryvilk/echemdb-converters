@@ -22,10 +22,10 @@ Converts MPT files recorded with the EC-Lab software from BioLogic for BioLogic 
 # ********************************************************************
 
 
-from .csvconverter import CSVconverter
+from csvloader import CSVloader
 
-class EC-LabConverter(CSVconverter):
-    r"""Converts BioLogic EC-Lab MPT files.
+class ECLabLoader(CSVloader):
+    r"""Loads BioLogic EC-Lab MPT files.
     The following examples are based on the general structure of MPT files.
 
     EXAMPLES::
@@ -40,7 +40,8 @@ class EC-LabConverter(CSVconverter):
         ... 2\t0\t0
         ... 2\t1\t1,4
         ... ''')
-        >>> csv = CSVconverter.get_converter('EC-Lab')(file)
+        >>> from csvloader import CSVloader
+        >>> csv = CSVloader.get_loader('eclab')(file)
         >>> csv.df
            mode  time/s  control/V
         0     2       0        0.0
@@ -72,7 +73,8 @@ class EC-LabConverter(CSVconverter):
             ... 2   0   0
             ... 2   1   1,4
             ... ''')
-            >>> csv = CSVconverter.get_converter('EC-Lab')(file)
+            >>> from csvloader import CSVloader
+            >>> csv = CSVloader.get_loader('eclab')(file)
             >>> csv.header_lines
             5
 
@@ -107,7 +109,8 @@ class EC-LabConverter(CSVconverter):
             ... 2\t0\t0
             ... 2\t1\t1,4
             ... ''')
-            >>> csv = CSVconverter.get_converter('EC-Lab')(file)
+            >>> from csvloader import CSVloader
+            >>> csv = CSVloader.get_loader('eclab')(file)
             >>> csv.df
                mode  time/s  control/V
             0     2       0        0.0

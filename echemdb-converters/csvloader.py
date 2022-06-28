@@ -39,7 +39,7 @@ Special converters for non standard CSV files can be called:
 from functools import cache
 
 
-class CSVconverter:
+class CSVloader:
     r"""Reads a CSV, where the first line contains the column names
     and the following lines comma separated data.
 
@@ -49,7 +49,7 @@ class CSVconverter:
         >>> file = StringIO(r'''a,b
         ... 0,0
         ... 1,1''')
-        >>> csv = CSVconverter(file)
+        >>> csv = CSVloader(file)
         >>> csv.df
            a  b
         0  0  0
@@ -77,7 +77,7 @@ class CSVconverter:
             >>> file = StringIO(r'''a,b
             ... 0,0
             ... 1,1''')
-            >>> csv = CSVconverter(file)
+            >>> csv = CSVloader(file)
             >>> type(csv.file)
             <class '_io.StringIO'>
 
@@ -86,20 +86,22 @@ class CSVconverter:
         return StringIO(self._file)
 
     @staticmethod
-    def get_converter(device=None):
+    def get_loader(device=None):
         r"""
         Calls a specific converter class based on a given device.
         """
         # import here to avoid cyclical dependencies
-        # TODO: Implement the following convberters
+        # TODO: Implement the following converters
         # TODO: from .thiolab_labview_converter import ThiolabLabviewConverter
         # TODO: from .genericcsvconverter import GenericCsvConverter
         # TODO: from .eclabconverter import EclabConverter
         # The following dict is a placeholder for further specific converters.
         # They hare here to get an idea what this function should do. These are currently not tested.
-        devices = {'generic' : GenericCsvConverter, # Generic CSV converter
-                   'eclab' : EclabConverter, # Biologic-EClab device
-                   'Thiolab Labview' : ThiolabLabviewConverter, # Labview data recorder formerly used in the thiolab
+        from eclabloader import ECLabLoader
+
+        devices = {#'generic' : GenericCsvLoader, # Generic CSV converter
+                   'eclab' : ECLabLoader, # Biologic-EClab device
+                   #'Thiolab Labview' : ThiolabLabviewLoader, # Labview data recorder formerly used in the thiolab
                     }
 
         if device in devices:
@@ -118,7 +120,7 @@ class CSVconverter:
             >>> file = StringIO(r'''a,b
             ... 0,0
             ... 1,1''')
-            >>> csv = CSVconverter(file)
+            >>> csv = CSVloader(file)
             >>> csv.df
                a  b
             0  0  0
@@ -143,7 +145,7 @@ class CSVconverter:
             >>> file = StringIO(r'''a,b
             ... 0,0
             ... 1,1''')
-            >>> csv = CSVconverter(file)
+            >>> csv = CSVloader(file)
             >>> csv.header
             []
 
@@ -162,7 +164,7 @@ class CSVconverter:
             >>> file = StringIO(r'''a,b
             ... 0,0
             ... 1,1''')
-            >>> csv = CSVconverter(file)
+            >>> csv = CSVloader(file)
             >>> csv.column_names
             ['a', 'b']
 
@@ -180,7 +182,7 @@ class CSVconverter:
             >>> file = StringIO(r'''a,b
             ... 0,0
             ... 1,1''')
-            >>> csv = CSVconverter(file)
+            >>> csv = CSVloader(file)
             >>> csv.header_lines
             0
 
