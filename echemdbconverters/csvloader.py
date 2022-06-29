@@ -218,9 +218,11 @@ class CSVloader:
         """
         from frictionless import Schema
 
-        if not self.metadata["figure description"]["fields"]:
+        try:
+            self.loader.metadata["figure description"]["fields"]
+        except:
             raise Exception(
-                "The `figure description` in the loaders metadata does not contain a field key."
+                "`fields` are not specified in the metadata `figure description`."
             )
 
         schema = Schema(fields=self.metadata["figure description"]["fields"])
