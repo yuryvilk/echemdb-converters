@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - black
+  - frictionless
   - isort
   - pandas
   - pip
