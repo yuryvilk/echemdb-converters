@@ -64,6 +64,7 @@ class CSVloader:
     TODO:: Add example with csv.get_device('device')(file)
 
     """
+
     def __init__(self, file, metadata=None):
         self._file = file.read()
         self._metadata = metadata or {}
@@ -83,6 +84,7 @@ class CSVloader:
 
         """
         from io import StringIO
+
         return StringIO(self._file)
 
     @staticmethod
@@ -99,10 +101,10 @@ class CSVloader:
         # They hare here to get an idea what this function should do. These are currently not tested.
         from eclabloader import ECLabLoader
 
-        devices = {#'generic' : GenericCsvLoader, # Generic CSV converter
-                   'eclab' : ECLabLoader, # Biologic-EClab device
-                   #'Thiolab Labview' : ThiolabLabviewLoader, # Labview data recorder formerly used in the thiolab
-                    }
+        devices = {  #'generic' : GenericCsvLoader, # Generic CSV converter
+            "eclab": ECLabLoader,  # Biologic-EClab device
+            #'Thiolab Labview' : ThiolabLabviewLoader, # Labview data recorder formerly used in the thiolab
+        }
 
         if device in devices:
             return devices[device]
@@ -197,3 +199,36 @@ class CSVloader:
         A simple CSV does not contain metadata.
         """
         return self._metadata
+
+    @property
+    def schema(self):
+        """
+        EXAMPLES::
+
+        >>> from io import StringIO
+        >>> file = StringIO(r'''t,E,j
+        ... 0,0,0
+        ... 1,1,1''')
+        >>> from csvloader import CSVloader
+        >>> metadata = {'figure description': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}
+        >>> csv = CSVloader(file, metadata)
+        >>> csv.schema
+        {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]}
+
+        """
+        from frictionless import Schema
+
+        if not self.metadata["figure description"]["fields"]:
+            raise Exception(
+                "The `figure description` in the loaders metadata does not contain a field key."
+            )
+
+        schema = Schema(fields=self.metadata["figure description"]["fields"])
+
+        for name in self.column_names:
+            if not name in schema.field_names:
+                raise KeyError(
+                    f"Field with name {name} is not specified in `metadata.figure_description.fields`."
+                )
+
+        return schema
