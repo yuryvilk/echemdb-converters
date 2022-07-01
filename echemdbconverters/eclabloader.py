@@ -22,7 +22,44 @@ Converts MPT files recorded with the EC-Lab software from BioLogic for BioLogic 
 # ********************************************************************
 
 
-from csvloader import CSVloader
+from .csvloader import CSVloader
+
+biologic_fields = [
+    {'name': 'mode',
+    },
+    {'name': 'ox/red',
+    },
+    {'name': 'error',
+    },
+    {'name': 'control changes',
+    },
+    {'name': 'counter inc.',
+    },
+    {'name': 'ox/red',
+    },
+    {'name': 'time/s',
+    'unit': 's',
+    },
+    {'name':'control/V',
+    'unit': 'V',
+    },
+    {'name': 'Ewe',
+     'unit': 'V',
+     },
+    {'name': '<I>/mA',
+     'unit': 'mA',
+    },
+    {'name': 'cycle number',
+    },
+    {'name': '(Q-Qo)/C',
+    'unit': 'C',
+    },
+    {'name': 'P/W',
+     'unit': 'W',
+    },
+    {'name': 'Unnamed : 13', # It seems that there is an unnamed column in the csv where the number reflects the number of columns.
+    },
+    ]
 
 class ECLabLoader(CSVloader):
     r"""Loads BioLogic EC-Lab MPT files.
@@ -40,7 +77,7 @@ class ECLabLoader(CSVloader):
         ... 2\t0\t0
         ... 2\t1\t1,4
         ... ''')
-        >>> from csvloader import CSVloader
+        >>> from .csvloader import CSVloader
         >>> csv = CSVloader.get_loader('eclab')(file)
         >>> csv.df
            mode  time/s  control/V
@@ -54,6 +91,7 @@ class ECLabLoader(CSVloader):
         ['mode', 'time/s', 'control/V']
 
     """
+
     @property
     def header_lines(self):
         r"""The number of header lines of an EC-Lab MPT file without column names.
@@ -73,7 +111,7 @@ class ECLabLoader(CSVloader):
             ... 2   0   0
             ... 2   1   1,4
             ... ''')
-            >>> from csvloader import CSVloader
+            >>> from .csvloader import CSVloader
             >>> csv = CSVloader.get_loader('eclab')(file)
             >>> csv.header_lines
             5
@@ -83,19 +121,23 @@ class ECLabLoader(CSVloader):
 
         for line in self.file.readlines():
             import re
-            match = re.findall(r"(?P<headerlines>Nb header lines) *\: *(?P<value>-?\d+\.?\d*)", str(line), re.IGNORECASE)
+
+            match = re.findall(
+                r"(?P<headerlines>Nb header lines) *\: *(?P<value>-?\d+\.?\d*)",
+                str(line),
+                re.IGNORECASE,
+            )
 
             if match:
                 matches.append(match)
 
-
         header_lines = int(matches[0][0][1])
         # The counter should be reset, otherwise pd.read_csv() is not able to read the file
-        return header_lines-1
+        return header_lines - 1
 
     @property
     def df(self):
-        r"""A pandas dataframe extracted from the EC-Lab MPT file.
+        r"""A pandas dataframe extracted from an EC-Lab MPT file.
 
         EXAMPLES::
 
@@ -109,7 +151,7 @@ class ECLabLoader(CSVloader):
             ... 2\t0\t0
             ... 2\t1\t1,4
             ... ''')
-            >>> from csvloader import CSVloader
+            >>> from .csvloader import CSVloader
             >>> csv = CSVloader.get_loader('eclab')(file)
             >>> csv.df
                mode  time/s  control/V
@@ -119,4 +161,48 @@ class ECLabLoader(CSVloader):
         """
         import pandas as pd
 
-        return pd.read_csv(self.file, sep='\t', header=self.header_lines, decimal=',', encoding='latin1', skip_blank_lines=False)
+        return pd.read_csv(
+            self.file,
+            sep="\t",
+            header=self.header_lines,
+            decimal=",",
+            encoding="latin1",
+            skip_blank_lines=False,
+        )
+
+    @property
+    def schema(self):
+        """
+        ECLab schema
+        """
+        from frictionless import Schema
+
+        metadata = self._metadata.copy()
+
+        metadata.setdefault('figure description', {})
+
+        if not metadata['figure description']:
+            metadata['figure description'].setdefault('schema', {})
+
+        if not metadata['figure description']['schema']:
+            metadata['figure description']['schema'].setdefault('fields', [])
+
+        if not metadata['figure description']['schema']['fields']:
+            schema = Schema(fields=self._create_fields())
+
+        else:
+            schema = Schema(fields=metadata['figure description']['schema']['fields'])
+            self._validate_schema(schema)
+
+        return schema
+
+    def _create_fields(self):
+
+        fields = []
+
+        for item in biologic_fields:
+            for name in self.column_names:
+                if name == item['name']:
+                    fields.append(item)
+
+        return fields

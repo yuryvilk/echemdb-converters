@@ -90,7 +90,7 @@ class CSVloader:
     @staticmethod
     def get_loader(device=None):
         r"""
-        Calls a specific converter class based on a given device.
+        Calls a specific `loader` based on a given device.
         """
         # import here to avoid cyclical dependencies
         # TODO: Implement the following converters
@@ -99,7 +99,7 @@ class CSVloader:
         # TODO: from .eclabconverter import EclabConverter
         # The following dict is a placeholder for further specific converters.
         # They hare here to get an idea what this function should do. These are currently not tested.
-        from eclabloader import ECLabLoader
+        from .eclabloader import ECLabLoader
 
         devices = {  #'generic' : GenericCsvLoader, # Generic CSV converter
             "eclab": ECLabLoader,  # Biologic-EClab device
@@ -109,7 +109,7 @@ class CSVloader:
         if device in devices:
             return devices[device]
 
-        raise KeyError(f"Device wth name '{device}' is unknown to the converter'.")
+        raise KeyError(f"Device wth name '{device}' is unknown to the loader'.")
 
     @property
     def df(self):
@@ -194,43 +194,52 @@ class CSVloader:
     @property
     def metadata(self):
         r"""
-        Metadata constructed from input metadata and
-        and the CSV header
-        A simple CSV does not contain metadata.
+        Metadata constructed from input metadata and the CSV header.
+        A simple CSV does not have any metadata in the header.
         """
-        return self._metadata
+        return self._metadata.copy()
 
     @property
     def schema(self):
         """
+        # TODO:: The metadata path to schema should be 'figure_description.schema.fields'
         EXAMPLES::
 
-        >>> from io import StringIO
-        >>> file = StringIO(r'''t,E,j
-        ... 0,0,0
-        ... 1,1,1''')
-        >>> from csvloader import CSVloader
-        >>> metadata = {'figure description': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}
-        >>> csv = CSVloader(file, metadata)
-        >>> csv.schema
-        {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]}
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
+            >>> csv = CSVloader(file, metadata)
+            >>> csv.schema
+            {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]}
 
         """
         from frictionless import Schema
 
         try:
-            self.loader.metadata["figure description"]["fields"]
+            self.metadata["figure description"]['schema']["fields"]
         except:
             raise Exception(
                 "`fields` are not specified in the metadata `figure description`."
             )
 
-        schema = Schema(fields=self.metadata["figure description"]["fields"])
+        schema = Schema(fields=self.metadata["figure description"]["schema"]['fields'])
+
+        if self._validate_schema(schema):
+            return schema
+        else:
+            raise("Schema could not be created.")
+
+    def _validate_schema(self, schema):
+        if not len(self.column_names) == len(schema.field_names):
+            raise Exception(f"The number of columns ({len(self.column_names)}) does not match the number of fields ({len(schema.field_names)}) in the schema.")
 
         for name in self.column_names:
             if not name in schema.field_names:
                 raise KeyError(
-                    f"Field with name {name} is not specified in `metadata.figure_description.fields`."
+                    f"The schema does not have a description for the column with name '{name}'."
                 )
 
-        return schema
+        return True
