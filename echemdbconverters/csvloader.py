@@ -200,9 +200,15 @@ class CSVloader:
         return self._metadata.copy()
 
     @property
-    def schema(self):
+    def schema(self, fields=None):
         """
-        # TODO:: The metadata path to schema should be 'figure_description.schema.fields'
+        A frictionless `Schema` object, including a `Fields` object
+        describing the columns.
+        The fields can be provided or will be extracted from the metadata,
+        where they should be located in `figure_description.schema.fields'.
+
+        TODO:: If the fields are not provided they could be constructed from the the column names.
+
         EXAMPLES::
 
             >>> from io import StringIO
@@ -218,21 +224,20 @@ class CSVloader:
         """
         from frictionless import Schema
 
+        schema = Schema(fields=fields or self._create_fields())
+
+        return self._validated_schema(schema)
+
+    def _create_fields(self):
         try:
-            self.metadata["figure description"]['schema']["fields"]
+            fields = self.metadata["figure description"]['schema']["fields"]
         except:
             raise Exception(
                 "`fields` are not specified in the metadata `figure description`."
             )
+        return fields
 
-        schema = Schema(fields=self.metadata["figure description"]["schema"]['fields'])
-
-        if self._validate_schema(schema):
-            return schema
-        else:
-            raise("Schema could not be created.")
-
-    def _validate_schema(self, schema):
+    def _validated_schema(self, schema):
         if not len(self.column_names) == len(schema.field_names):
             raise Exception(f"The number of columns ({len(self.column_names)}) does not match the number of fields ({len(schema.field_names)}) in the schema.")
 
@@ -242,4 +247,4 @@ class CSVloader:
                     f"The schema does not have a description for the column with name '{name}'."
                 )
 
-        return True
+        return schema

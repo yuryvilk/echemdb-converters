@@ -35,29 +35,41 @@ biologic_fields = [
     },
     {'name': 'counter inc.',
     },
-    {'name': 'ox/red',
-    },
     {'name': 'time/s',
-    'unit': 's',
+     'unit': 's',
+     'dimension': 't',
+     'description': 'relative time'
     },
     {'name':'control/V',
-    'unit': 'V',
-    },
-    {'name': 'Ewe',
      'unit': 'V',
-     },
+     'dimension': 'E',
+     'description': 'control voltage'
+    },
+    {'name': 'Ewe/V',
+     'unit': 'V',
+     'dimension': 'E',
+     'description': 'working electrode potential'
+    },
     {'name': '<I>/mA',
      'unit': 'mA',
+     'dimension': 'I',
+     'description': 'working electrode current'
     },
     {'name': 'cycle number',
+    'description': 'cycle number'
     },
     {'name': '(Q-Qo)/C',
     'unit': 'C',
     },
+    {'name': 'I Range',
+    'description': 'current range'
+    },
     {'name': 'P/W',
      'unit': 'W',
+     'dimension': 'P',
+     'description': 'power'
     },
-    {'name': 'Unnamed : 13', # It seems that there is an unnamed column in the csv where the number reflects the number of columns.
+    {'name': 'Unnamed: 13', # It seems that there is an unnamed column in the csv where the number reflects the number of columns.
     },
     ]
 
@@ -109,7 +121,7 @@ class ECLabLoader(CSVloader):
             ...
             ... mode    time/s  control/V
             ... 2   0   0
-            ... 2   1   1,4
+            ... 2   1   1.4
             ... ''')
             >>> from .csvloader import CSVloader
             >>> csv = CSVloader.get_loader('eclab')(file)
@@ -170,39 +182,6 @@ class ECLabLoader(CSVloader):
             skip_blank_lines=False,
         )
 
-    @property
-    def schema(self):
-        """
-        ECLab schema
-        """
-        from frictionless import Schema
-
-        metadata = self._metadata.copy()
-
-        metadata.setdefault('figure description', {})
-
-        if not metadata['figure description']:
-            metadata['figure description'].setdefault('schema', {})
-
-        if not metadata['figure description']['schema']:
-            metadata['figure description']['schema'].setdefault('fields', [])
-
-        if not metadata['figure description']['schema']['fields']:
-            schema = Schema(fields=self._create_fields())
-
-        else:
-            schema = Schema(fields=metadata['figure description']['schema']['fields'])
-            self._validate_schema(schema)
-
-        return schema
-
     def _create_fields(self):
-
-        fields = []
-
-        for item in biologic_fields:
-            for name in self.column_names:
-                if name == item['name']:
-                    fields.append(item)
-
-        return fields
+        # TODO:: This will fail when the number of columns different than 13, since then unnamed 13 does not exist in biologic fields.
+        return [field for field in biologic_fields for name in self.column_names if name == field['name']]
