@@ -1,5 +1,6 @@
 from .converter import ECConverter
 
+
 class ECLabConverter(ECConverter):
     r"""
     Some description.
@@ -24,11 +25,12 @@ class ECLabConverter(ECConverter):
         1  1  5  1
 
     """
+
     @property
     def name_conversion(self):
 
         return {
-                'time/s': 't',
-                'Ewe/V': 'E',
-                '<I>/mA': 'I',
-            }
+            "time/s": "t",
+            "Ewe/V": "E",
+            "<I>/mA": "I",
+        }

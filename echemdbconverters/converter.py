@@ -1,5 +1,7 @@
 import logging
+
 logger = logging.getLogger("converters")
+
 
 class ECConverter:
     """
@@ -80,7 +82,7 @@ class ECConverter:
             KeyError: "No column with a 'current' axis."
 
         """
-        core_dimensions = {'time': ['t'], 'voltage': ['E', 'U'], 'current': ['I', 'j']}
+        core_dimensions = {"time": ["t"], "voltage": ["E", "U"], "current": ["I", "j"]}
 
         for key in core_dimensions:
             if not set(core_dimensions[key]).intersection(set(column_names)):
@@ -103,7 +105,7 @@ class ECConverter:
         """
         cls._validate_core_dimensions(column_names)
 
-        valid_dimensions = {'time': ['t'], 'voltage': ['E', 'U'], 'current': ['I', 'j']}
+        valid_dimensions = {"time": ["t"], "voltage": ["E", "U"], "current": ["I", "j"]}
 
         available_dimensions = []
 
@@ -120,7 +122,7 @@ class ECConverter:
 
         for name in schema.field_names:
             if name in self.name_conversion:
-                schema.get_field(name)['name'] = self.name_conversion[name]
+                schema.get_field(name)["name"] = self.name_conversion[name]
 
         return schema
 
@@ -145,12 +147,18 @@ class ECConverter:
         from frictionless import Schema
 
         # schema = self.loader.schema
-
         # for name in schema.field_names:
         #     if name in self.name_conversion:
         #         schema.get_field(name)['name'] = self.name_conversion[name]
 
-        schema = Schema(fields=[self._schema.get_field(name) for name in self.get_electrochemistry_dimensions(self._schema.field_names)])
+        schema = Schema(
+            fields=[
+                self._schema.get_field(name)
+                for name in self.get_electrochemistry_dimensions(
+                    self._schema.field_names
+                )
+            ]
+        )
 
         return schema
 

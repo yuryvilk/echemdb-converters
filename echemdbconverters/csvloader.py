@@ -38,10 +38,11 @@ Special converters for non standard CSV files can be called:
 # ********************************************************************
 
 
-from functools import cache
 import logging
+from functools import cache
 
 logger = logging.getLogger("loader")
+
 
 class CSVloader:
     r"""Reads a CSV, where the first line contains the column names
@@ -241,11 +242,13 @@ class CSVloader:
                 "Tried to get 'fields' from metadata in `figure_description.schema.fields`but were not specified. Create fields from column names."
             )
 
-        return [{'name': name} for name in self.column_names]
+        return [{"name": name} for name in self.column_names]
 
     def _validated_schema(self, schema):
         if not len(self.column_names) == len(schema.field_names):
-            raise Exception(f"The number of columns ({len(self.column_names)}) does not match the number of fields ({len(schema.field_names)}) in the schema.")
+            raise Exception(
+                f"The number of columns ({len(self.column_names)}) does not match the number of fields ({len(schema.field_names)}) in the schema."
+            )
 
         for name in self.column_names:
             if not name in schema.field_names:

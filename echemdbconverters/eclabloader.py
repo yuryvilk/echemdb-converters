@@ -25,53 +25,52 @@ Converts MPT files recorded with the EC-Lab software from BioLogic for BioLogic 
 from .csvloader import CSVloader
 
 biologic_fields = [
-    {'name': 'mode',
+    {
+        "name": "mode",
     },
-    {'name': 'ox/red',
+    {
+        "name": "ox/red",
     },
-    {'name': 'error',
+    {
+        "name": "error",
     },
-    {'name': 'control changes',
+    {
+        "name": "control changes",
     },
-    {'name': 'counter inc.',
+    {
+        "name": "counter inc.",
     },
-    {'name': 'time/s',
-     'unit': 's',
-     'dimension': 't',
-     'description': 'relative time'
+    {"name": "time/s", "unit": "s", "dimension": "t", "description": "relative time"},
+    {
+        "name": "control/V",
+        "unit": "V",
+        "dimension": "E",
+        "description": "control voltage",
     },
-    {'name':'control/V',
-     'unit': 'V',
-     'dimension': 'E',
-     'description': 'control voltage'
+    {
+        "name": "Ewe/V",
+        "unit": "V",
+        "dimension": "E",
+        "description": "working electrode potential",
     },
-    {'name': 'Ewe/V',
-     'unit': 'V',
-     'dimension': 'E',
-     'description': 'working electrode potential'
+    {
+        "name": "<I>/mA",
+        "unit": "mA",
+        "dimension": "I",
+        "description": "working electrode current",
     },
-    {'name': '<I>/mA',
-     'unit': 'mA',
-     'dimension': 'I',
-     'description': 'working electrode current'
+    {"name": "cycle number", "description": "cycle number"},
+    {
+        "name": "(Q-Qo)/C",
+        "unit": "C",
     },
-    {'name': 'cycle number',
-    'description': 'cycle number'
+    {"name": "I Range", "description": "current range"},
+    {"name": "P/W", "unit": "W", "dimension": "P", "description": "power"},
+    {
+        "name": "Unnamed: 13",  # It seems that there is an unnamed column in the csv where the number reflects the number of columns.
     },
-    {'name': '(Q-Qo)/C',
-    'unit': 'C',
-    },
-    {'name': 'I Range',
-    'description': 'current range'
-    },
-    {'name': 'P/W',
-     'unit': 'W',
-     'dimension': 'P',
-     'description': 'power'
-    },
-    {'name': 'Unnamed: 13', # It seems that there is an unnamed column in the csv where the number reflects the number of columns.
-    },
-    ]
+]
+
 
 class ECLabLoader(CSVloader):
     r"""Loads BioLogic EC-Lab MPT files.
@@ -184,4 +183,9 @@ class ECLabLoader(CSVloader):
 
     def _create_fields(self):
         # TODO:: This will fail when the number of columns different than 13, since then unnamed 13 does not exist in biologic fields.
-        return [field for field in biologic_fields for name in self.column_names if name == field['name']]
+        return [
+            field
+            for field in biologic_fields
+            for name in self.column_names
+            if name == field["name"]
+        ]
