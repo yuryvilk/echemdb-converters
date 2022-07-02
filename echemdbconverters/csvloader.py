@@ -39,7 +39,6 @@ Special converters for non standard CSV files can be called:
 
 
 import logging
-from functools import cache
 
 logger = logging.getLogger("loader")
 
@@ -161,7 +160,6 @@ class CSVloader:
         return [lines[_] for _ in range(self.header_lines)]
 
     @property
-    @cache
     def column_names(self):
         r"""List of column names describing the tabulated data.
 
@@ -204,7 +202,6 @@ class CSVloader:
         """
         return self._metadata.copy()
 
-    @property
     def schema(self, fields=None):
         """
         A frictionless `Schema` object, including a `Fields` object
@@ -223,7 +220,7 @@ class CSVloader:
             >>> from .csvloader import CSVloader
             >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
             >>> csv = CSVloader(file, metadata)
-            >>> csv.schema
+            >>> csv.schema()
             {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]}
 
         """
@@ -237,7 +234,7 @@ class CSVloader:
 
         try:
             return self.metadata["figure description"]["schema"]["fields"]
-        except:
+        except KeyError:
             logger.warning(
                 "Tried to get 'fields' from metadata in `figure_description.schema.fields`but were not specified. Create fields from column names."
             )

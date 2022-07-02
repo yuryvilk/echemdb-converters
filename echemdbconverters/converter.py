@@ -39,6 +39,7 @@ class ECConverter:
     def __init__(self, loader):
         self.loader = loader
 
+    @staticmethod
     def get_converter(device=None):
         r"""
         Calls a specific `converter` based on a given device.
@@ -64,6 +65,9 @@ class ECConverter:
 
     @property
     def name_conversion(self):
+        """
+        Some Text.
+        """
         return {}
 
     @classmethod
@@ -84,8 +88,8 @@ class ECConverter:
         """
         core_dimensions = {"time": ["t"], "voltage": ["E", "U"], "current": ["I", "j"]}
 
-        for key in core_dimensions:
-            if not set(core_dimensions[key]).intersection(set(column_names)):
+        for key, item in core_dimensions.items():
+            if not set(item).intersection(set(column_names)):
                 raise KeyError(f"No column with a '{key}' axis.")
         return True
 
@@ -109,7 +113,7 @@ class ECConverter:
 
         available_dimensions = []
 
-        for key, items in valid_dimensions.items():
+        for _, items in valid_dimensions.items():
             for item in items:
                 if item in column_names:
                     available_dimensions.append(item)
@@ -118,7 +122,10 @@ class ECConverter:
 
     @property
     def _schema(self):
-        schema = self.loader.schema
+        r"""
+        Some text
+        """
+        schema = self.loader.schema()
 
         for name in schema.field_names:
             if name in self.name_conversion:
