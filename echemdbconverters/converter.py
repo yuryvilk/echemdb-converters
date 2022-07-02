@@ -60,6 +60,7 @@ class ECConverter:
 
         raise KeyError(f"Device wth name '{device}' is unknown to the converter'.")
 
+    @property
     def name_conversion(self):
         return {}
 
@@ -114,6 +115,16 @@ class ECConverter:
         return available_dimensions
 
     @property
+    def _schema(self):
+        schema = self.loader.schema
+
+        for name in schema.field_names:
+            if name in self.name_conversion:
+                schema.get_field(name)['name'] = self.name_conversion[name]
+
+        return schema
+
+    @property
     def schema(self):
         """
         Creates an ec schema.
@@ -133,7 +144,13 @@ class ECConverter:
         """
         from frictionless import Schema
 
-        schema = Schema(fields=[self.loader.schema.get_field(dimension) for dimension in self.column_names])
+        # schema = self.loader.schema
+
+        # for name in schema.field_names:
+        #     if name in self.name_conversion:
+        #         schema.get_field(name)['name'] = self.name_conversion[name]
+
+        schema = Schema(fields=[self._schema.get_field(name) for name in self.get_electrochemistry_dimensions(self._schema.field_names)])
 
         return schema
 
@@ -142,8 +159,43 @@ class ECConverter:
         """
         The EC file must have three dimensions, including time, voltage and current.
         Possibly construct column names in here.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j,x
+            ... 0,0,0,0
+            ... 1,1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'},{'name':'x', 'unit':'m'}]}}}
+            >>> ec = ECConverter(CSVloader(file, metadata))
+            >>> ec.column_names
+            ['t', 'E', 'j']
+
         """
-        return self.get_electrochemistry_dimensions(self.loader.column_names)
+        return self.schema.field_names
+
+    @property
+    def _df(self):
+        """
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j,x
+            ... 0,0,0,0
+            ... 1,1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> metadata = {'figure description': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'},{'name':'x', 'unit':'m'}]}}
+            >>> ec = ECConverter(CSVloader(file, metadata))
+            >>> ec._df
+               t  E  j  x
+            0  0  0  0  0
+            1  1  1  1  1
+
+        """
+        df = self.loader.df.copy()
+        df.columns = self._schema.field_names
+        return df
 
     @property
     def df(self):
@@ -162,8 +214,11 @@ class ECConverter:
             >>> from .csvloader import CSVloader
             >>> metadata = {'figure description': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'},{'name':'x', 'unit':'m'}]}}
             >>> ec = ECConverter(CSVloader(file, metadata))
-            >>> ec.get_electrochemistry_dimensions(ec.loader.column_names)
-            ['t', 'E', 'j']
+            >>> ec.df
+               t  E  j
+            0  0  0  0
+            1  1  1  1
 
         """
-        return self.loader.df[self.get_electrochemistry_dimensions(self.column_names)]
+
+        return self._df[self.column_names]
