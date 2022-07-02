@@ -36,8 +36,12 @@ Special converters for non standard CSV files can be called:
 #  You should have received a copy of the GNU General Public License
 #  along with echemdb-converters. If not, see <https://www.gnu.org/licenses/>.
 # ********************************************************************
-from functools import cache
 
+
+from functools import cache
+import logging
+
+logger = logging.getLogger("loader")
 
 class CSVloader:
     r"""Reads a CSV, where the first line contains the column names
@@ -226,16 +230,18 @@ class CSVloader:
 
         schema = Schema(fields=fields or self._create_fields())
 
-        return self._validated_schema(schema)
+        return Schema(self._validated_schema(schema))
 
     def _create_fields(self):
+
         try:
-            fields = self.metadata["figure description"]['schema']["fields"]
+            return self.metadata["figure description"]["schema"]["fields"]
         except:
-            raise Exception(
-                "`fields` are not specified in the metadata `figure description`."
+            logger.warning(
+                "Tried to get 'fields' from metadata in `figure_description.schema.fields`but were not specified. Create fields from column names."
             )
-        return fields
+
+        return [{'name': name} for name in self.column_names]
 
     def _validated_schema(self, schema):
         if not len(self.column_names) == len(schema.field_names):
