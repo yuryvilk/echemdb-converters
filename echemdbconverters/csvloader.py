@@ -1,7 +1,12 @@
 r"""
-Converter for CSV files (https://datatracker.ietf.org/doc/html/rfc4180)
-which consist of a single header line containing the column names
-and rows with comma separated data.
+Loader for CSV files (https://datatracker.ietf.org/doc/html/rfc4180)
+which consist of a single header line containing the column (field)
+names and rows with comma separated values.
+
+In pandas the names of the columns are referred to as `column_names`,
+whereas in frictionless datapackages the column names are called `fields`.
+The latter contain additional information such as the type of data,
+a title or a description.
 
 The CSV object has the following properties:
 ::TODO: Add examples for the following functions
@@ -10,6 +15,7 @@ The CSV object has the following properties:
 * the header contents
 * the number of header lines
 * metadata
+* schema
 
 Special converters for non standard CSV files can be called:
 
@@ -44,8 +50,8 @@ logger = logging.getLogger("loader")
 
 
 class CSVloader:
-    r"""Reads a CSV, where the first line contains the column names
-    and the following lines comma separated data.
+    r"""Loads a CSV, where the first line must contain the column (field) names
+    and the following lines comma separated values.
 
     EXAMPLES::
 
@@ -59,7 +65,7 @@ class CSVloader:
         0  0  0
         1  1  1
 
-    A list of names describing the columns::
+    A list of column names::
 
         >>> csv.column_names
         ['a', 'b']
@@ -69,9 +75,10 @@ class CSVloader:
 
     """
 
-    def __init__(self, file, metadata=None):
+    def __init__(self, file, metadata=None, fields=None):
         self._file = file.read()
         self._metadata = metadata or {}
+        self.fields = self.validate_fields(fields or self.create_fields())
 
     @property
     def file(self):
@@ -96,18 +103,18 @@ class CSVloader:
         r"""
         Calls a specific `loader` based on a given device.
         """
-        # import here to avoid cyclical dependencies
+        # import here to avoid cyclic dependencies
         # TODO: Implement the following converters
         # TODO: from .thiolab_labview_converter import ThiolabLabviewConverter
         # TODO: from .genericcsvconverter import GenericCsvConverter
         # TODO: from .eclabconverter import EclabConverter
-        # The following dict is a placeholder for further specific converters.
-        # They hare here to get an idea what this function should do. These are currently not tested.
+        # TODO: Possibly allow extracting the device from the matadata file, i.e.,
+        # device = None or metadata['instrument']['device']
+        # But maybe this should rather be implemented in the CLI.
         from .eclabloader import ECLabLoader
 
         devices = {  #'generic' : GenericCsvLoader, # Generic CSV converter
             "eclab": ECLabLoader,  # Biologic-EClab device
-            #'Thiolab Labview' : ThiolabLabviewLoader, # Labview data recorder formerly used in the thiolab
         }
 
         if device in devices:
@@ -140,10 +147,7 @@ class CSVloader:
     @property
     def header(self):
         r"""
-        The header of the CVS file
-        (column names excluded).
-
-        A standard CSV file does not have a header.
+        The header of the CVS (column names excluded).
 
         EXAMPLES::
 
@@ -161,7 +165,7 @@ class CSVloader:
 
     @property
     def column_names(self):
-        r"""List of column names describing the tabulated data.
+        r"""List of column (field) names describing the tabulated data.
 
         EXAMPLES::
 
@@ -202,14 +206,12 @@ class CSVloader:
         """
         return self._metadata.copy()
 
-    def schema(self, fields=None):
-        """
+    def schema(self):
+        r"""
         A frictionless `Schema` object, including a `Fields` object
         describing the columns.
-        The fields can be provided or will be extracted from the metadata,
-        where they should be located in `figure_description.schema.fields'.
-
-        TODO:: If the fields are not provided they could be constructed from the the column names.
+        The fields can be provided as argument to the loader or are
+        constructed from the `column_names`.
 
         EXAMPLES::
 
@@ -218,30 +220,69 @@ class CSVloader:
             ... 0,0,0
             ... 1,1,1''')
             >>> from .csvloader import CSVloader
+            >>> csv = CSVloader(file)
+            >>> csv.schema()
+            {'fields': [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]}
+
+        from metadata::
+
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
             >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
-            >>> csv = CSVloader(file, metadata)
+            >>> csv = CSVloader(file=file, metadata=metadata, fields=metadata['figure description']['schema']['fields'])
             >>> csv.schema()
             {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]}
 
         """
         from frictionless import Schema
 
-        schema = Schema(fields=fields or self._create_fields())
+        schema = Schema(fields=self.fields)
 
         return Schema(self._validated_schema(schema))
 
-    def _create_fields(self):
+    def create_fields(self):
+        r"""
+        Creates a list of fields from the column names.
 
-        try:
-            return self.metadata["figure description"]["schema"]["fields"]
-        except KeyError:
-            logger.warning(
-                "Tried to get 'fields' from metadata in `figure_description.schema.fields`but were not specified. Create fields from column names."
-            )
+        EXAMPLES::
 
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> csv = CSVloader(file)
+            >>> csv.create_fields()
+            [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]
+
+        """
         return [{"name": name} for name in self.column_names]
 
     def _validated_schema(self, schema):
+        r"""
+        Returns an unchanged frictionless schema when the fields provided in the metadata or as argument
+        in the schema are consistent with the column names in the CSV.
+
+        EXAMPLES:
+
+        A valid schema::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
+            >>> schema = {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}
+            >>> csv = CSVloader(file, metadata)
+            >>> csv._validated_schema(schema)
+            {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]}
+
+        """
+        from frictionless import Schema
+        schema = Schema(schema)
+
         if not len(self.column_names) == len(schema.field_names):
             raise Exception(
                 f"The number of columns ({len(self.column_names)}) does not match the number of fields ({len(schema.field_names)}) in the schema."
@@ -254,3 +295,49 @@ class CSVloader:
                 )
 
         return schema
+
+    def validate_fields(self, fields):
+        r"""
+        Returns an unchanged frictionless schema when the fields provided in the metadata or as argument
+        in the schema are consistent with the column names in the CSV.
+
+        EXAMPLES:
+
+        A valid schema::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> csv = CSVloader(file)
+            >>> csv.validate_fields({})
+            Traceback (most recent call last):
+            ...
+            Exception: The number of columns (3) does not match the number of fields (0).
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> fields = [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]
+            >>> csv = CSVloader(file)
+            >>> csv.validate_fields(fields)
+            [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]
+
+        """
+        from frictionless import Schema
+        schema = Schema(fields=fields)
+
+        if not len(self.column_names) == len(schema.field_names):
+            raise Exception(
+                f"The number of columns ({len(self.column_names)}) does not match the number of fields ({len(schema.field_names)})."
+            )
+
+        for name in self.column_names:
+            if not name in schema.field_names:
+                raise KeyError(
+                    f"^No field describes the column with name '{name}'."
+                )
+
+        return fields
