@@ -288,7 +288,7 @@ class CSVloader:
             >>> csv.validate_fields({})
             Traceback (most recent call last):
             ...
-            Exception: The number of columns (3) does not match the number of fields (0).
+            Exception: The number of columns (3) in the CSV does not match the number of fields (0).
 
         """
         from frictionless import Schema
@@ -297,7 +297,7 @@ class CSVloader:
 
         if not len(self.column_names) == len(schema.field_names):
             raise Exception(
-                f"The number of columns ({len(self.column_names)}) does not match the number of fields ({len(schema.field_names)})."
+                f"The number of columns ({len(self.column_names)}) in the CSV does not match the number of fields ({len(schema.field_names)})."
             )
 
         for name in self.column_names:
