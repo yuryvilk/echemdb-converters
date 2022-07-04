@@ -113,14 +113,14 @@ class ECLabLoader(CSVloader):
         EXAMPLES::
 
             >>> from io import StringIO
-            >>> file = StringIO(r'''EC-Lab ASCII FILE
+            >>> file = StringIO('''EC-Lab ASCII FILE
             ... Nb header lines : 6
             ...
             ... Device metadata : some metadata
             ...
-            ... mode    time/s  control/V
-            ... 2   0   0
-            ... 2   1   1.4
+            ... mode\ttime/s\tcontrol/V
+            ... 2\t0\t0
+            ... 2\t1\t1,4
             ... ''')
             >>> from .csvloader import CSVloader
             >>> csv = CSVloader.get_loader('eclab')(file)
@@ -142,9 +142,7 @@ class ECLabLoader(CSVloader):
             if match:
                 matches.append(match)
 
-        header_lines = int(matches[0][0][1])
-        # The counter should be reset, otherwise pd.read_csv() is not able to read the file
-        return header_lines - 1
+        return int(matches[0][0][1]) - 1
 
     @property
     def df(self):
@@ -181,7 +179,26 @@ class ECLabLoader(CSVloader):
             skip_blank_lines=False,
         )
 
-    def _create_fields(self):
+    def create_fields(self):
+        r"""
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO('''EC-Lab ASCII FILE
+            ... Nb header lines : 6
+            ...
+            ... Device metadata : some metadata
+            ...
+            ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+            ... 2\t0\t0\t0\t0
+            ... 2\t1\t1.4\t5\t1
+            ... ''')
+            >>> from .csvloader import CSVloader
+            >>> ec = CSVloader.get_loader('eclab')(file)
+            >>> ec.create_fields()
+            [{'name': 'mode'}, {'name': 'time/s', 'unit': 's', 'dimension': 't', 'description': 'relative time'}, {'name': 'control/V', 'unit': 'V', 'dimension': 'E', 'description': 'control voltage'}, {'name': 'Ewe/V', 'unit': 'V', 'dimension': 'E', 'description': 'working electrode potential'}, {'name': '<I>/mA', 'unit': 'mA', 'dimension': 'I', 'description': 'working electrode current'}]
+        """
         # TODO:: This will fail when the number of columns different than 13, since then unnamed 13 does not exist in biologic fields.
         return [
             field
