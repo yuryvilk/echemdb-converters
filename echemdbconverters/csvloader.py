@@ -78,7 +78,9 @@ class CSVloader:
     def __init__(self, file, metadata=None, fields=None):
         self._file = file.read()
         self._metadata = metadata or {}
-        self.fields = self.validate_fields(fields or self.create_fields())
+        #self.fields = self.validate_fields(fields or self.create_fields())
+        if self.validate_fields(fields or self.create_fields()):
+            self.fields = fields or self.create_fields()
 
     @property
     def file(self):
@@ -210,8 +212,8 @@ class CSVloader:
         r"""
         A frictionless `Schema` object, including a `Fields` object
         describing the columns.
-        The fields can be provided as argument to the loader or are
-        constructed from the `column_names`.
+        The fields can be provided as argument to the loader or they
+        are constructed from the `column_names`.
 
         EXAMPLES::
 
@@ -237,9 +239,7 @@ class CSVloader:
         """
         from frictionless import Schema
 
-        schema = Schema(fields=self.fields)
-
-        return Schema(self._validated_schema(schema))
+        return Schema(fields=self.fields)
 
     def create_fields(self):
         r"""
@@ -259,51 +259,25 @@ class CSVloader:
         """
         return [{"name": name} for name in self.column_names]
 
-    def _validated_schema(self, schema):
+    def validate_fields(self, fields):
         r"""
-        Returns an unchanged frictionless schema when the fields provided in the metadata or as argument
-        in the schema are consistent with the column names in the CSV.
+        Returns "True" when the number of fields matches the number of columns in the CSV
+        and when the field names match the column names in th CSV.
 
         EXAMPLES:
 
-        A valid schema::
+        Valid fields::
 
             >>> from io import StringIO
             >>> file = StringIO(r'''t,E,j
             ... 0,0,0
             ... 1,1,1''')
-            >>> from .csvloader import CSVloader
-            >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
-            >>> schema = {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}
-            >>> csv = CSVloader(file, metadata)
-            >>> csv._validated_schema(schema)
-            {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]}
+            >>> fields = [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]
+            >>> csv = CSVloader(file)
+            >>> csv.validate_fields(fields)
+            True
 
-        """
-        from frictionless import Schema
-        schema = Schema(schema)
-
-        if not len(self.column_names) == len(schema.field_names):
-            raise Exception(
-                f"The number of columns ({len(self.column_names)}) does not match the number of fields ({len(schema.field_names)}) in the schema."
-            )
-
-        for name in self.column_names:
-            if not name in schema.field_names:
-                raise KeyError(
-                    f"The schema does not have a description for the column with name '{name}'."
-                )
-
-        return schema
-
-    def validate_fields(self, fields):
-        r"""
-        Returns an unchanged frictionless schema when the fields provided in the metadata or as argument
-        in the schema are consistent with the column names in the CSV.
-
-        EXAMPLES:
-
-        A valid schema::
+        Invalid fields::
 
             >>> from io import StringIO
             >>> file = StringIO(r'''t,E,j
@@ -316,17 +290,9 @@ class CSVloader:
             ...
             Exception: The number of columns (3) does not match the number of fields (0).
 
-            >>> from io import StringIO
-            >>> file = StringIO(r'''t,E,j
-            ... 0,0,0
-            ... 1,1,1''')
-            >>> fields = [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]
-            >>> csv = CSVloader(file)
-            >>> csv.validate_fields(fields)
-            [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]
-
         """
         from frictionless import Schema
+
         schema = Schema(fields=fields)
 
         if not len(self.column_names) == len(schema.field_names):
@@ -340,4 +306,4 @@ class CSVloader:
                     f"^No field describes the column with name '{name}'."
                 )
 
-        return fields
+        return True
