@@ -1,6 +1,27 @@
-import logging
+r"""
+Creates standardized echemdb datapackage compatible CSV.
 
-logger = logging.getLogger("converters")
+The file loaded must have the columns t, U/E, and I/j.
+
+"""
+# ********************************************************************
+#  This file is part of echemdb-converters.
+#
+#        Copyright (C) 2022 Albert Engstfeld
+#
+#  echemdb-converters is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  echemdb-converters is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with echemdb-converters. If not, see <https://www.gnu.org/licenses/>.
+# ********************************************************************
 
 
 class ECConverter:
@@ -17,7 +38,7 @@ class ECConverter:
         ... 1,1,1''')
         >>> from .csvloader import CSVloader
         >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
-        >>> ec = ECConverter(CSVloader(file, metadata))
+        >>> ec = ECConverter(CSVloader(file=file, metadata=metadata, fields=metadata['figure description']['schema']['fields']))
         >>> ec.df
            t  E  j
         0  0  0  0
@@ -125,7 +146,7 @@ class ECConverter:
         r"""
         Some text
         """
-        schema = self.loader.schema()
+        schema = self.loader.schema
 
         for name in schema.field_names:
             if name in self.name_conversion:
@@ -146,17 +167,12 @@ class ECConverter:
             ... 1,1,1,1''')
             >>> from .csvloader import CSVloader
             >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'},{'name':'x', 'unit':'m'}]}}}
-            >>> ec = ECConverter(CSVloader(file, metadata))
+            >>> ec = ECConverter(CSVloader(file=file, metadata=metadata, fields=metadata['figure description']['schema']['fields']))
             >>> ec.schema
             {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]}
 
         """
         from frictionless import Schema
-
-        # schema = self.loader.schema
-        # for name in schema.field_names:
-        #     if name in self.name_conversion:
-        #         schema.get_field(name)['name'] = self.name_conversion[name]
 
         schema = Schema(
             fields=[
@@ -172,8 +188,7 @@ class ECConverter:
     @property
     def column_names(self):
         """
-        The EC file must have three dimensions, including time, voltage and current.
-        Possibly construct column names in here.
+        The EC file must have at least three dimensions, including time, voltage and current.
 
         EXAMPLES::
 

@@ -1,3 +1,6 @@
+r"""
+Converts ECLab MPT files into an echemdb datapackage compatible CSV object.
+"""
 # ********************************************************************
 #  This file is part of echemdb-converters.
 #
@@ -33,7 +36,7 @@ class ECLabConverter(ECConverter):
         ... Device metadata : some metadata
         ...
         ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
-        ... 2\t0\t0\t0\t0
+        ... 2\t0\t0.1\t0\t0
         ... 2\t1\t1.4\t5\t1
         ... ''')
         >>> from .csvloader import CSVloader
