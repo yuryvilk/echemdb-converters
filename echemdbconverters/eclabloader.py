@@ -22,6 +22,8 @@ Loads MPT files recorded with the EC-Lab software from BioLogic for BioLogic pot
 # ********************************************************************
 
 
+from ast import AsyncFunctionDef
+from msvcrt import LK_LOCK
 from .csvloader import CSVloader
 
 biologic_fields = [
@@ -229,8 +231,7 @@ class ECLabLoader(CSVloader):
             ','
 
         """
-        if ',' in self.file.readlines()[self.header_lines+1:self.header_lines+2][0]:
+        if ',' in self.data.readlines()[0]:
             return ','
 
         return '.'
-

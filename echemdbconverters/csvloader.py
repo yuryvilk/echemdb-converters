@@ -166,6 +166,32 @@ class CSVloader:
         return [lines[_] for _ in range(self.header_lines)]
 
     @property
+    def data(self):
+        r"""A file like object containing the data of the CSV without header lines.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVloader(file)
+            >>> type(csv.data)
+            <class '_io.StringIO'>
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVloader(file)
+            >>> csv.data.readlines()
+            ['0,0\n', '1,1']
+
+        """
+        from io import StringIO
+        return StringIO(''.join(line for line in self.file.readlines()[self.header_lines+1:]))
+
+    @property
     def column_names(self):
         r"""List of column (field) names describing the tabulated data.
 
@@ -312,7 +338,8 @@ class CSVloader:
     @property
     def delimiter(self):
         """
-        Return autodetected csv delimiter.
+        The delimiter in the CSV, which is extracted from
+        the first two lines of the CSV data.
 
         EXAMPLES::
 
@@ -327,11 +354,24 @@ class CSVloader:
         """
         import clevercsv
 
-        return clevercsv.detect.Detector().detect(self.file.read()).delimiter
+        return clevercsv.detect.Detector().detect(self.data.read()[:2]).delimiter
 
     @property
     def decimal(self):
         """
-        Return autodetected csv decimal separator.
+        The decimal separator in the floats in the CSV data.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVloader(file)
+            >>> csv.decimal
+            Traceback (most recent call last):
+            ...
+            NotImplementedError
+
         """
         raise NotImplementedError
