@@ -208,6 +208,7 @@ class CSVloader:
         """
         return self._metadata.copy()
 
+    @property
     def schema(self):
         r"""
         A frictionless `Schema` object, including a `Fields` object
@@ -223,7 +224,7 @@ class CSVloader:
             ... 1,1,1''')
             >>> from .csvloader import CSVloader
             >>> csv = CSVloader(file)
-            >>> csv.schema()
+            >>> csv.schema
             {'fields': [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]}
 
         from metadata::
@@ -233,7 +234,7 @@ class CSVloader:
             ... 1,1,1''')
             >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
             >>> csv = CSVloader(file=file, metadata=metadata, fields=metadata['figure description']['schema']['fields'])
-            >>> csv.schema()
+            >>> csv.schema
             {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]}
 
         """
@@ -307,3 +308,30 @@ class CSVloader:
                 )
 
         return True
+
+    @property
+    def delimiter(self):
+        """
+        Return autodetected csv delimiter.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVloader(file)
+            >>> csv.delimiter
+            ','
+
+        """
+        import clevercsv
+
+        return clevercsv.detect.Detector().detect(self.file.read()).delimiter
+
+    @property
+    def decimal(self):
+        """
+        Return autodetected csv decimal separator.
+        """
+        raise NotImplementedError

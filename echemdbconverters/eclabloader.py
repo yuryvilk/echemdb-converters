@@ -1,5 +1,5 @@
 r"""
-Converts MPT files recorded with the EC-Lab software from BioLogic for BioLogic potentiostats.
+Loads MPT files recorded with the EC-Lab software from BioLogic for BioLogic potentiostats.
 """
 # ********************************************************************
 #  This file is part of echemdb-converters.
@@ -74,7 +74,6 @@ biologic_fields = [
 
 class ECLabLoader(CSVloader):
     r"""Loads BioLogic EC-Lab MPT files.
-    The following examples are based on the general structure of MPT files.
 
     EXAMPLES::
 
@@ -84,22 +83,22 @@ class ECLabLoader(CSVloader):
         ...
         ... Device metadata : some metadata
         ...
-        ... mode\ttime/s\tcontrol/V
-        ... 2\t0\t0
-        ... 2\t1\t1,4
+        ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+        ... 2\t0\t0.1\t0\t0
+        ... 2\t1\t1.4\t5\t1
         ... ''')
         >>> from .csvloader import CSVloader
         >>> csv = CSVloader.get_loader('eclab')(file)
         >>> csv.df
-           mode  time/s  control/V
-        0     2       0        0.0
-        1     2       1        1.4
+           mode  time/s Ewe/V  <I>/mA  control/V
+        0     2       0   0.1       0          0
+        1     2       1   1.4       5          1
 
         >>> csv.header
         ['EC-Lab ASCII FILE\n', 'Nb header lines : 6\n', '\n', 'Device metadata : some metadata\n', '\n']
 
         >>> csv.column_names
-        ['mode', 'time/s', 'control/V']
+        ['mode', 'time/s', 'Ewe/V', '<I>/mA', 'control/V']
 
     """
 
@@ -118,9 +117,9 @@ class ECLabLoader(CSVloader):
             ...
             ... Device metadata : some metadata
             ...
-            ... mode\ttime/s\tcontrol/V
-            ... 2\t0\t0
-            ... 2\t1\t1,4
+            ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+            ... 2\t0\t0.1\t0\t0
+            ... 2\t1\t1.4\t5\t1
             ... ''')
             >>> from .csvloader import CSVloader
             >>> csv = CSVloader.get_loader('eclab')(file)
@@ -156,25 +155,25 @@ class ECLabLoader(CSVloader):
             ...
             ... Device metadata : some metadata
             ...
-            ... mode\ttime/s\tcontrol/V
-            ... 2\t0\t0
-            ... 2\t1\t1,4
+            ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+            ... 2\t0\t0.1\t0\t0
+            ... 2\t1\t1.4\t5\t1
             ... ''')
             >>> from .csvloader import CSVloader
             >>> csv = CSVloader.get_loader('eclab')(file)
             >>> csv.df
-               mode  time/s  control/V
-            0     2       0        0.0
-            1     2       1        1.4
+               mode  time/s Ewe/V  <I>/mA  control/V
+            0     2       0   0.1       0          0
+            1     2       1   1.4       5          1
 
         """
         import pandas as pd
 
         return pd.read_csv(
             self.file,
-            sep="\t",
+            sep=self.delimiter,
             header=self.header_lines,
-            decimal=",",
+            decimal=self.decimal,
             encoding="latin1",
             skip_blank_lines=False,
         )
@@ -191,13 +190,14 @@ class ECLabLoader(CSVloader):
             ... Device metadata : some metadata
             ...
             ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
-            ... 2\t0\t0\t0\t0
+            ... 2\t0\t0.1\t0\t0
             ... 2\t1\t1.4\t5\t1
             ... ''')
             >>> from .csvloader import CSVloader
             >>> ec = CSVloader.get_loader('eclab')(file)
             >>> ec.create_fields()
             [{'name': 'mode'}, {'name': 'time/s', 'unit': 's', 'dimension': 't', 'description': 'relative time'}, {'name': 'control/V', 'unit': 'V', 'dimension': 'E', 'description': 'control voltage'}, {'name': 'Ewe/V', 'unit': 'V', 'dimension': 'E', 'description': 'working electrode potential'}, {'name': '<I>/mA', 'unit': 'mA', 'dimension': 'I', 'description': 'working electrode current'}]
+
         """
         # TODO:: This will fail when the number of columns different than 13, since then unnamed 13 does not exist in biologic fields.
         return [
@@ -206,3 +206,31 @@ class ECLabLoader(CSVloader):
             for name in self.column_names
             if name == field["name"]
         ]
+
+    @property
+    def decimal(self):
+        r"""
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO('''EC-Lab ASCII FILE
+            ... Nb header lines : 6
+            ...
+            ... Device metadata : some metadata
+            ...
+            ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+            ... 2\t0\t0,1\t0\t0
+            ... 2\t1\t1,4\t5\t1
+            ... ''')
+            >>> from .csvloader import CSVloader
+            >>> ec = CSVloader.get_loader('eclab')(file)
+            >>> ec.decimal
+            ','
+
+        """
+        if ',' in self.file.readlines()[self.header_lines+1:self.header_lines+2][0]:
+            return ','
+
+        return '.'
+
