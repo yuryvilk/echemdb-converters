@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - black
+  - clevercsv
   - frictionless
   - isort
   - pandas
