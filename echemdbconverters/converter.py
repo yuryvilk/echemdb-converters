@@ -87,7 +87,23 @@ class ECConverter:
     @property
     def name_conversion(self):
         """
-        Some Text.
+        A dictionary which defines new names for column names of the loaded CSV.
+        For example the loaded CSV could contain a column with name `time/s`.
+        In the converted CSV that column should be names `t` instead.
+        In that case {'time/s':'t'} should be returned.
+        The property should be adapted in the respective device converters.
+
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j,x
+            ... 0,0,0,0
+            ... 1,1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> ec = ECConverter(CSVloader(file))
+            >>> ec.name_conversion
+            {}
         """
         return {}
 
@@ -144,7 +160,24 @@ class ECConverter:
     @property
     def _schema(self):
         r"""
-        Some text
+        A frictionless `Schema` object, including a `Fields` object
+        describing the columns of the converted electrochemical data.
+
+        In case the field names were not changed in property:name_conversion:
+        the resulting schema is identical to that of the loader.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j,x
+            ... 0,0,0,0
+            ... 1,1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'},{'name':'x', 'unit':'m'}]}}}
+            >>> ec = ECConverter(CSVloader(file=file, metadata=metadata, fields=metadata['figure description']['schema']['fields']))
+            >>> ec._schema
+            {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}, {'name': 'x', 'unit': 'm'}]}
+
         """
         schema = self.loader.schema
 
@@ -157,7 +190,8 @@ class ECConverter:
     @property
     def schema(self):
         """
-        Creates an ec schema.
+        A frictionless `Schema` object, including a `Fields` object
+        describing the columns of the converted electrochemical data.
 
         EXAMPLES::
 
@@ -250,5 +284,4 @@ class ECConverter:
             1  1  1  1
 
         """
-
         return self._df[self.column_names]
