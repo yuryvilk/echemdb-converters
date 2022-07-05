@@ -30,6 +30,7 @@ setup(
     long_description_content_type="text/markdown",
     include_package_data=True,
     install_requires=[
+        "clevercsv",
         "frictionless>=4,<5",
         "pandas>=1.3,<2",
     ],
