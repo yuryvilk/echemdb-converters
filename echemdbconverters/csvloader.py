@@ -4,20 +4,20 @@ which consist of a single header line containing the column (field)
 names and rows with comma separated values.
 
 In pandas the names of the columns are referred to as `column_names`,
-whereas in frictionless datapackages the column names are called `fields`.
-The latter contain additional information such as the type of data,
-a title or a description.
+whereas in a frictionless datapackage the column names are called `fields`.
+The latter is a descriptor containing, including information about, i.e.,
+the type of data, a title or a description.
 
 The CSV object has the following properties:
 ::TODO: Add examples for the following functions
-* a DataFrame
-* the column names
-* the header contents
-* the number of header lines
-* metadata
-* schema
+    * a DataFrame
+    * the column names
+    * the header contents
+    * the number of header lines
+    * metadata
+    * schema
 
-Special converters for non standard CSV files can be called:
+Loaders for non standard CSV files can be called:
 
 ::TODO: Add example
 
@@ -50,7 +50,8 @@ logger = logging.getLogger("loader")
 
 
 class CSVloader:
-    r"""Loads a CSV, where the first line must contain the column (field) names
+    r"""
+    Loads a CSV, where the first line must contain the column (field) names
     and the following lines comma separated values.
 
     EXAMPLES::
@@ -78,13 +79,34 @@ class CSVloader:
     def __init__(self, file, metadata=None, fields=None):
         self._file = file.read()
         self._metadata = metadata or {}
-        #self.fields = self.validate_fields(fields or self.create_fields())
-        if self.validate_fields(fields or self.create_fields()):
-            self.fields = fields or self.create_fields()
+        self._fields = fields
+
+    @property
+    def fields(self):
+        r"""
+        Fields describing the column names.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> csv = CSVloader(file)
+            >>> csv.fields
+            [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]
+
+        """
+        if self.validate_fields(self._fields or self.create_fields()):
+            fields = self._fields or self.create_fields()
+
+        return fields
 
     @property
     def file(self):
-        r"""A file like object.
+        r"""
+        A file like object of the loaded CSV.
 
         EXAMPLES::
             >>> from io import StringIO
@@ -167,7 +189,8 @@ class CSVloader:
 
     @property
     def data(self):
-        r"""A file like object containing the data of the CSV without header lines.
+        r"""
+        A file like object containing the data of the CSV without header lines.
 
         EXAMPLES::
 
@@ -193,7 +216,8 @@ class CSVloader:
 
     @property
     def column_names(self):
-        r"""List of column (field) names describing the tabulated data.
+        r"""
+        List of column (field) names describing the tabulated data.
 
         EXAMPLES::
 
@@ -337,7 +361,7 @@ class CSVloader:
 
     @property
     def delimiter(self):
-        """
+        r"""
         The delimiter in the CSV, which is extracted from
         the first two lines of the CSV data.
 
@@ -358,7 +382,7 @@ class CSVloader:
 
     @property
     def decimal(self):
-        """
+        r"""
         The decimal separator in the floats in the CSV data.
 
         EXAMPLES::
