@@ -20,7 +20,7 @@ Converts ECLab MPT files into an echemdb datapackage compatible CSV object.
 #  along with echemdb-converters. If not, see <https://www.gnu.org/licenses/>.
 # ********************************************************************
 
-from .converter import ECConverter
+from .ecconverter import ECConverter
 
 
 class ECLabConverter(ECConverter):
