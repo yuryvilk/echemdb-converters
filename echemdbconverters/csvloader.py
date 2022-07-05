@@ -82,28 +82,6 @@ class CSVloader:
         self._fields = fields
 
     @property
-    def fields(self):
-        r"""
-        Fields describing the column names.
-
-        EXAMPLES::
-
-            >>> from io import StringIO
-            >>> file = StringIO(r'''t,E,j
-            ... 0,0,0
-            ... 1,1,1''')
-            >>> from .csvloader import CSVloader
-            >>> csv = CSVloader(file)
-            >>> csv.fields
-            [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]
-
-        """
-        if self.validate_fields(self._fields or self.create_fields()):
-            fields = self._fields or self.create_fields()
-
-        return fields
-
-    @property
     def file(self):
         r"""
         A file like object of the loaded CSV.
@@ -122,19 +100,101 @@ class CSVloader:
 
         return StringIO(self._file)
 
+    @property
+    def fields(self):
+        r"""
+        Fields describing the column names.
+
+        EXAMPLES:
+
+        If not specified, the fields are created from the `column_names`.::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> csv = CSVloader(file)
+            >>> csv.fields
+            [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]
+
+        The fields can be provided as an argument to the loader.::
+
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
+            >>> csv = CSVloader(file=file, metadata=metadata, fields=metadata['figure description']['schema']['fields'])
+            >>> csv.fields
+            [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]
+
+        """
+        if self.validate_fields(self._fields or self.create_fields()):
+            fields = self._fields or self.create_fields()
+
+        return fields
+
+    @property
+    def metadata(self):
+        r"""
+        Metadata constructed from input metadata and the CSV header.
+        A simple CSV does not have any metadata in the header.
+
+        EXAMPLES::
+
+        Without metadata::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> csv = CSVloader(file)
+            >>> csv.metadata
+            {}
+
+        Without metadata provided to the loader::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> csv = CSVloader(file, metadata={'foo':'bar'})
+            >>> csv.metadata
+            {'foo': 'bar'}
+
+        """
+        return self._metadata.copy()
+
     @staticmethod
     def get_loader(device=None):
         r"""
         Calls a specific `loader` based on a given device.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO('''EC-Lab ASCII FILE
+            ... Nb header lines : 6
+            ...
+            ... Device metadata : some metadata
+            ...
+            ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+            ... 2\t0\t0.1\t0\t0
+            ... 2\t1\t1.4\t5\t1
+            ... ''')
+            >>> csv = CSVloader.get_loader('eclab')(file)
+            >>> csv.df
+            mode  time/s Ewe/V  <I>/mA  control/V
+            0     2       0   0.1       0          0
+            1     2       1   1.4       5          1
+
         """
         # import here to avoid cyclic dependencies
-        # TODO: Implement the following converters
-        # TODO: from .thiolab_labview_converter import ThiolabLabviewConverter
-        # TODO: from .genericcsvconverter import GenericCsvConverter
-        # TODO: from .eclabconverter import EclabConverter
-        # TODO: Possibly allow extracting the device from the matadata file, i.e.,
-        # device = None or metadata['instrument']['device']
-        # But maybe this should rather be implemented in the CLI.
+        # ::TODO: Implement the following converters
+        # ::TODO: from .thiolab_labview_converter import ThiolabLabviewConverter
+        # ::TODO: from .genericcsvconverter import GenericCsvConverter
         from .eclabloader import ECLabLoader
 
         devices = {  #'generic' : GenericCsvLoader, # Generic CSV converter
@@ -149,7 +209,7 @@ class CSVloader:
     @property
     def df(self):
         r"""
-        A pandas dataframe of the CSV.
+        A pandas dataframe of the data in the CSV.
 
         EXAMPLES::
 
@@ -185,12 +245,13 @@ class CSVloader:
 
         """
         lines = self.file.readlines()
+
         return [lines[_] for _ in range(self.header_lines)]
 
     @property
     def data(self):
         r"""
-        A file like object containing the data of the CSV without header lines.
+        A file like object with the data of the CSV without header lines.
 
         EXAMPLES::
 
@@ -212,6 +273,7 @@ class CSVloader:
 
         """
         from io import StringIO
+
         return StringIO(''.join(line for line in self.file.readlines()[self.header_lines+1:]))
 
     @property
@@ -235,9 +297,11 @@ class CSVloader:
     @property
     def header_lines(self):
         r"""
-        The number of header lines of a CSV without column names.
+        The number of header lines in a CSV excluding the line with the column names.
 
-        EXAMPLES::
+        EXAMPLES:
+
+        Files for the base loader do not have a header::
 
             >>> from io import StringIO
             >>> file = StringIO(r'''a,b
@@ -247,24 +311,29 @@ class CSVloader:
             >>> csv.header_lines
             0
 
+        Implementation in a specific device loader::
+
+            >>> file = StringIO('''EC-Lab ASCII FILE
+            ... Nb header lines : 6
+            ...
+            ... Device metadata : some metadata
+            ...
+            ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+            ... 2\t0\t0,1\t0\t0
+            ... 2\t1\t1,4\t5\t1
+            ... ''')
+            >>> csv = CSVloader.get_loader('eclab')(file)
+            >>> csv.header_lines
+            5
+
         """
         return 0
-
-    @property
-    def metadata(self):
-        r"""
-        Metadata constructed from input metadata and the CSV header.
-        A simple CSV does not have any metadata in the header.
-        """
-        return self._metadata.copy()
 
     @property
     def schema(self):
         r"""
         A frictionless `Schema` object, including a `Fields` object
         describing the columns.
-        The fields can be provided as argument to the loader or they
-        are constructed from the `column_names`.
 
         EXAMPLES::
 
@@ -277,7 +346,7 @@ class CSVloader:
             >>> csv.schema
             {'fields': [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]}
 
-        from metadata::
+        Field description provided in the metadata::
 
             >>> file = StringIO(r'''t,E,j
             ... 0,0,0
@@ -328,7 +397,7 @@ class CSVloader:
             >>> csv.validate_fields(fields)
             True
 
-        Invalid fields::
+        Invalid number of fields::
 
             >>> from io import StringIO
             >>> file = StringIO(r'''t,E,j
@@ -336,10 +405,23 @@ class CSVloader:
             ... 1,1,1''')
             >>> from .csvloader import CSVloader
             >>> csv = CSVloader(file)
-            >>> csv.validate_fields({})
+            >>> csv.validate_fields([{'name':'t'}])
             Traceback (most recent call last):
             ...
-            Exception: The number of columns (3) in the CSV does not match the number of fields (0).
+            Exception: The number of columns (3) in the CSV does not match the number of provided fields (1).
+
+        Invalid fields names::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> csv = CSVloader(file)
+            >>> csv.validate_fields([{'name':'x'},{'name':'v'},{'name':'j'}])
+            Traceback (most recent call last):
+            ...
+            KeyError: "No field describes the column with names '['t', 'E']'."
 
         """
         from frictionless import Schema
@@ -348,14 +430,15 @@ class CSVloader:
 
         if not len(self.column_names) == len(schema.field_names):
             raise Exception(
-                f"The number of columns ({len(self.column_names)}) in the CSV does not match the number of fields ({len(schema.field_names)})."
+                f"The number of columns ({len(self.column_names)}) in the CSV does not match the number of provided fields ({len(schema.field_names)})."
             )
 
-        for name in self.column_names:
-            if not name in schema.field_names:
-                raise KeyError(
-                    f"^No field describes the column with name '{name}'."
-                )
+        unnamed = [name for name in self.column_names if not name in schema.field_names]
+
+        if len(unnamed) > 0:
+            raise KeyError(
+                    f"No field describes the column with names '{unnamed}'."
+            )
 
         return True
 
@@ -378,6 +461,8 @@ class CSVloader:
         """
         import clevercsv
 
+        # Only two lines are used to detect the delimiter,
+        # since clevercsv is slow with files containing many columns.
         return clevercsv.detect.Detector().detect(self.data.read()[:2]).delimiter
 
     @property
@@ -385,7 +470,9 @@ class CSVloader:
         r"""
         The decimal separator in the floats in the CSV data.
 
-        EXAMPLES::
+        EXAMPLES:
+
+        Not implemented in the base loader::
 
             >>> from io import StringIO
             >>> file = StringIO(r'''a,b
@@ -396,6 +483,21 @@ class CSVloader:
             Traceback (most recent call last):
             ...
             NotImplementedError
+
+        Implementation in a specific device loader::
+
+            >>> file = StringIO('''EC-Lab ASCII FILE
+            ... Nb header lines : 6
+            ...
+            ... Device metadata : some metadata
+            ...
+            ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+            ... 2\t0\t0,1\t0\t0
+            ... 2\t1\t1,4\t5\t1
+            ... ''')
+            >>> csv = CSVloader.get_loader('eclab')(file)
+            >>> csv.decimal
+            ','
 
         """
         raise NotImplementedError

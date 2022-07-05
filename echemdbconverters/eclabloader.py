@@ -6,6 +6,7 @@ Loads MPT files recorded with the EC-Lab software from BioLogic for BioLogic pot
 #
 #        Copyright (C) 2022 Albert Engstfeld
 #        Copyright (C) 2022 Johannes Hermann
+#        Copyright (C) 2022 Julian Rüth
 #
 #  echemdb-converters is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -22,8 +23,6 @@ Loads MPT files recorded with the EC-Lab software from BioLogic for BioLogic pot
 # ********************************************************************
 
 
-from ast import AsyncFunctionDef
-from msvcrt import LK_LOCK
 from .csvloader import CSVloader
 
 biologic_fields = [
@@ -69,7 +68,7 @@ biologic_fields = [
     {"name": "I Range", "description": "current range"},
     {"name": "P/W", "unit": "W", "dimension": "P", "description": "power"},
     {
-        "name": "Unnamed: 13",  # It seems that there is an unnamed column in the csv where the number reflects the number of columns.
+        "name": "Unnamed: 13",  # It seems that there is an unnamed column in the csv where the number reflects the number of columns.(see: #8)
     },
 ]
 
@@ -107,9 +106,8 @@ class ECLabLoader(CSVloader):
     @property
     def header_lines(self):
         r"""The number of header lines of an EC-Lab MPT file without column names.
-        The value is determined from the number of header lines provided
-        in the MPT file (in which the column names are included.)
-        The value varies depending on the options selected in EC-Lab.
+        The number is provided in the header of the MPT file, which contains, however,
+        also the line with the data column names.
 
         EXAMPLES::
 
@@ -147,7 +145,7 @@ class ECLabLoader(CSVloader):
 
     @property
     def df(self):
-        r"""A pandas dataframe extracted from an EC-Lab MPT file.
+        r"""A pandas dataframe with the data of the EC-Lab MPT file.
 
         EXAMPLES::
 
@@ -182,6 +180,7 @@ class ECLabLoader(CSVloader):
 
     def create_fields(self):
         r"""
+        Creates a list of fields from possible BiLogic field names provided :value:biologic_fields.
 
         EXAMPLES::
 
@@ -201,7 +200,7 @@ class ECLabLoader(CSVloader):
             [{'name': 'mode'}, {'name': 'time/s', 'unit': 's', 'dimension': 't', 'description': 'relative time'}, {'name': 'control/V', 'unit': 'V', 'dimension': 'E', 'description': 'control voltage'}, {'name': 'Ewe/V', 'unit': 'V', 'dimension': 'E', 'description': 'working electrode potential'}, {'name': '<I>/mA', 'unit': 'mA', 'dimension': 'I', 'description': 'working electrode current'}]
 
         """
-        # TODO:: This will fail when the number of columns different than 13, since then unnamed 13 does not exist in biologic fields.
+        # TODO:: When the file contains an unnamed column an this is not 13, this approach will fail. (see: #8)
         return [
             field
             for field in biologic_fields
@@ -212,6 +211,8 @@ class ECLabLoader(CSVloader):
     @property
     def decimal(self):
         r"""
+        Returns the decimal separator in the MPT,
+        which depends on the language settings of the operating system running the software.
 
         EXAMPLES::
 
@@ -231,6 +232,9 @@ class ECLabLoader(CSVloader):
             ','
 
         """
+        # The values in the MPT are always tab separated.
+        # The data in the file only consist of numbers.
+        # Hence we simply determine if the line contains a comma or not.
         if ',' in self.data.readlines()[0]:
             return ','
 
