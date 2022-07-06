@@ -74,7 +74,8 @@ biologic_fields = [
 
 
 class ECLabLoader(CSVloader):
-    r"""Loads BioLogic EC-Lab MPT files.
+    r"""
+    Loads BioLogic EC-Lab MPT files.
 
     EXAMPLES::
 
@@ -105,7 +106,8 @@ class ECLabLoader(CSVloader):
 
     @property
     def header_lines(self):
-        r"""The number of header lines of an EC-Lab MPT file without column names.
+        r"""
+        The number of header lines of an EC-Lab MPT file without column names.
         The number is provided in the header of the MPT file, which contains, however,
         also the line with the data column names.
 
@@ -145,7 +147,8 @@ class ECLabLoader(CSVloader):
 
     @property
     def df(self):
-        r"""A pandas dataframe with the data of the EC-Lab MPT file.
+        r"""
+        A pandas dataframe with the data of the EC-Lab MPT file.
 
         EXAMPLES::
 
@@ -235,7 +238,7 @@ class ECLabLoader(CSVloader):
         # The values in the MPT are always tab separated.
         # The data in the file only consist of numbers.
         # Hence we simply determine if the line contains a comma or not.
-        if ',' in self.data.readlines()[0]:
-            return ','
+        if "," in self.data.readlines()[0]:
+            return ","
 
-        return '.'
+        return "."
