@@ -274,7 +274,9 @@ class CSVloader:
         """
         from io import StringIO
 
-        return StringIO(''.join(line for line in self.file.readlines()[self.header_lines+1:]))
+        return StringIO(
+            "".join(line for line in self.file.readlines()[self.header_lines + 1 :])
+        )
 
     @property
     def column_names(self):
@@ -436,9 +438,7 @@ class CSVloader:
         unnamed = [name for name in self.column_names if not name in schema.field_names]
 
         if len(unnamed) > 0:
-            raise KeyError(
-                    f"No field describes the column with names '{unnamed}'."
-            )
+            raise KeyError(f"No field describes the column with names '{unnamed}'.")
 
         return True
 

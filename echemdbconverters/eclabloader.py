@@ -1,5 +1,51 @@
 r"""
 Loads MPT files recorded with the EC-Lab software from BioLogic for BioLogic potentiostats.
+
+    EXAMPLES:
+
+The file can be loaded with the ECLabLoader::
+
+        >>> from io import StringIO
+        >>> file = StringIO('''EC-Lab ASCII FILE
+        ... Nb header lines : 6
+        ...
+        ... Device metadata : some metadata
+        ...
+        ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+        ... 2\t0\t0.1\t0\t0
+        ... 2\t1\t1.4\t5\t1
+        ... ''')
+        >>> eclab_csv = ECLabLoader(file)
+        >>> eclab_csv.df
+           mode  time/s Ewe/V  <I>/mA  control/V
+        0     2       0   0.1       0          0
+        1     2       1   1.4       5          1
+
+The file can also be loaded from the base loader::
+
+        >>> from io import StringIO
+        >>> file = StringIO('''EC-Lab ASCII FILE
+        ... Nb header lines : 6
+        ...
+        ... Device metadata : some metadata
+        ...
+        ... mode\ttime/s\tEwe/V\t<I>/mA\tcontrol/V
+        ... 2\t0\t0.1\t0\t0
+        ... 2\t1\t1.4\t5\t1
+        ... ''')
+        >>> from .csvloader import CSVloader
+        >>> csv = CSVloader.get_loader('eclab')(file)
+        >>> csv.df
+           mode  time/s Ewe/V  <I>/mA  control/V
+        0     2       0   0.1       0          0
+        1     2       1   1.4       5          1
+
+        >>> csv.header
+        ['EC-Lab ASCII FILE\n', 'Nb header lines : 6\n', '\n', 'Device metadata : some metadata\n', '\n']
+
+        >>> csv.column_names
+        ['mode', 'time/s', 'Ewe/V', '<I>/mA', 'control/V']
+
 """
 # ********************************************************************
 #  This file is part of echemdb-converters.
