@@ -1,7 +1,7 @@
 r"""
 Loads MPT files recorded with the EC-Lab software from BioLogic for BioLogic potentiostats.
 
-    EXAMPLES:
+EXAMPLES:
 
 The file can be loaded with the ECLabLoader::
 
