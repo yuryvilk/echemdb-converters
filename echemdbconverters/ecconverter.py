@@ -2,12 +2,36 @@ r"""
 Creates standardized echemdb datapackage compatible CSV.
 
 The file loaded must have the columns t, U/E, and I/j.
+Other columns are not included in the output data.
+
+EXAMPLES::
+
+    >>> from io import StringIO
+    >>> file = StringIO(r'''t,E,j,x
+    ... 0,0,0,0
+    ... 1,1,1,1''')
+    >>> from .csvloader import CSVloader
+    >>> metadata = {'figure description': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'},{'name':'x', 'unit':'m'}]}}
+    >>> ec = ECConverter(CSVloader(file, metadata))
+    >>> ec.df
+       t  E  j
+    0  0  0  0
+    1  1  1  1
+
+The original dataframe is still accessible from the loader::
+
+    >>> ec.loader.df
+       t  E  j  x
+    0  0  0  0  0
+    1  1  1  1  1
 
 """
 # ********************************************************************
 #  This file is part of echemdb-converters.
 #
 #        Copyright (C) 2022 Albert Engstfeld
+#        Copyright (C) 2022 Johannes Hermann
+#        Copyright (C) 2022 Julian Rüth
 #
 #  echemdb-converters is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -24,20 +48,25 @@ The file loaded must have the columns t, U/E, and I/j.
 # ********************************************************************
 
 
+import logging
+
+logger = logging.getLogger("ecconverter")
+
 class ECConverter:
     """
     Creates standardized echemdb datapackage compatible CSV.
 
     The file loaded must have the columns t, U/E, and I/j.
+    Any other columns will be discarded.
 
     EXAMPLES::
 
         >>> from io import StringIO
-        >>> file = StringIO(r'''t,E,j
-        ... 0,0,0
-        ... 1,1,1''')
+        >>> file = StringIO(r'''t,E,j,x
+        ... 0,0,0,0
+        ... 1,1,1,1''')
         >>> from .csvloader import CSVloader
-        >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
+        >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'},{'name':'x', 'unit':'m'}]}}}
         >>> ec = ECConverter(CSVloader(file=file, metadata=metadata, fields=metadata['figure description']['schema']['fields']))
         >>> ec.df
            t  E  j
@@ -57,8 +86,16 @@ class ECConverter:
 
     """
 
-    def __init__(self, loader):
+    def __init__(self, loader, fields=None):
         self.loader = loader
+        self._fields = fields
+
+    @property
+    def fields(self):
+        if not self._fields:
+            return self.loader.fields
+
+        return self._fields
 
     @staticmethod
     def get_converter(device=None):
@@ -178,6 +215,17 @@ class ECConverter:
             >>> ec._schema
             {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}, {'name': 'x', 'unit': 'm'}]}
 
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''t,E,j,x
+            ... 0,0,0,0
+            ... 1,1,1,1''')
+            >>> from .csvloader import CSVloader
+            >>> metadata = {'figure description': {'schema': {'fields': [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]}}}
+            >>> ec = ECConverter(CSVloader(file=file, metadata=metadata, fields=metadata['figure description']['schema']['fields']))
+            >>> ec._schema
+            {'fields': [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}, {'name': 'x', 'comment': 'Created by echemdb-converters.'}]}
+
         """
         schema = self.loader.schema
 
@@ -266,8 +314,8 @@ class ECConverter:
         """
         Creates standardized electrochemistry dataframes.
 
-        The file loaded must have the columns t, U/E, and I/j,
-        but may contain any other columns related to the EC data.
+        The file loaded must have the columns t, U/E, and I/j.
+        Any other columns are discarded.
 
         EXAMPLES::
 

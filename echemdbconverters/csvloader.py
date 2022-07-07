@@ -116,7 +116,7 @@ class CSVloader:
             >>> from .csvloader import CSVloader
             >>> csv = CSVloader(file)
             >>> csv.fields
-            [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]
+            [{'name': 't', 'comment': 'Created by echemdb-converters.'}, {'name': 'E', 'comment': 'Created by echemdb-converters.'}, {'name': 'j', 'comment': 'Created by echemdb-converters.'}]
 
         The fields can be provided as an argument to the loader.::
 
@@ -128,11 +128,47 @@ class CSVloader:
             >>> csv.fields
             [{'name': 't', 'unit': 's'}, {'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}]
 
-        """
-        if self.validate_fields(self._fields or self.create_fields()):
-            fields = self._fields or self.create_fields()
+        When a field is missing (here `t`) it will be generated and all obsolete fields descriptions (here `x`) are removed.::
 
-        return fields
+            >>> file = StringIO(r'''t,E,j
+            ... 0,0,0
+            ... 1,1,1''')
+            >>> metadata = {'figure description': {'schema': {'fields': [{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'},{'name': 'x'}]}}}
+            >>> csv = CSVloader(file=file, metadata=metadata, fields=metadata['figure description']['schema']['fields'])
+            >>> csv.fields
+            [{'name': 'E', 'unit': 'V', 'reference': 'RHE'}, {'name': 'j', 'unit': 'uA / cm2'}, {'name': 't', 'comment': 'Created by echemdb-converters.'}]
+
+        """
+        #_fields = self._fields
+        if not self._fields:
+            return self.create_fields()
+
+        from frictionless import Schema, Field
+
+        # Validate if fields are valid frictionless fields.
+        schema = Schema(fields=[Field(field) for field in self._fields])
+
+        # Validate that the fields have an attribute 'name'
+        # and remove the field if not available.
+        for field in schema.fields:
+            try:
+                field['name']
+            except KeyError:
+                schema.fields.remove(field)
+                logger.warning("Field {field} has no attribute `name`.")
+
+        # Remove fields which are not found in the column names.
+        for name in schema.field_names:
+            if not name in self.column_names:
+                schema.remove_field(name)
+
+        # Add fields for columns names that are not described in the provided fields.
+        for name in self.column_names:
+            if not name in schema.field_names:
+                schema.add_field(self.create_field(name))
+                logger.warning("A field with name `{name}` was added to the schema.")
+
+        return schema.fields
 
     @property
     def metadata(self):
@@ -346,7 +382,7 @@ class CSVloader:
             >>> from .csvloader import CSVloader
             >>> csv = CSVloader(file)
             >>> csv.schema
-            {'fields': [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]}
+            {'fields': [{'name': 't', 'comment': 'Created by echemdb-converters.'}, {'name': 'E', 'comment': 'Created by echemdb-converters.'}, {'name': 'j', 'comment': 'Created by echemdb-converters.'}]}
 
         Field description provided in the metadata::
 
@@ -376,71 +412,23 @@ class CSVloader:
             >>> from .csvloader import CSVloader
             >>> csv = CSVloader(file)
             >>> csv.create_fields()
-            [{'name': 't'}, {'name': 'E'}, {'name': 'j'}]
+            [{'name': 't', 'comment': 'Created by echemdb-converters.'}, {'name': 'E', 'comment': 'Created by echemdb-converters.'}, {'name': 'j', 'comment': 'Created by echemdb-converters.'}]
 
         """
-        return [{"name": name} for name in self.column_names]
+        return [self.create_field(name) for name in self.column_names]
 
-    def validate_fields(self, fields):
+    @classmethod
+    def create_field(cls, name):
         r"""
-        Returns "True" when the number of fields matches the number of columns in the CSV
-        and when the field names match the column names in th CSV.
+        Creates a field with a specified name.
 
-        EXAMPLES:
+        EXAMPLES::
 
-        Valid fields::
-
-            >>> from io import StringIO
-            >>> file = StringIO(r'''t,E,j
-            ... 0,0,0
-            ... 1,1,1''')
-            >>> fields = [{'name':'t', 'unit':'s'},{'name':'E', 'unit':'V', 'reference':'RHE'},{'name':'j', 'unit':'uA / cm2'}]
-            >>> csv = CSVloader(file)
-            >>> csv.validate_fields(fields)
-            True
-
-        Invalid number of fields::
-
-            >>> from io import StringIO
-            >>> file = StringIO(r'''t,E,j
-            ... 0,0,0
-            ... 1,1,1''')
-            >>> from .csvloader import CSVloader
-            >>> csv = CSVloader(file)
-            >>> csv.validate_fields([{'name':'t'}])
-            Traceback (most recent call last):
-            ...
-            Exception: The number of columns (3) in the CSV does not match the number of provided fields (1).
-
-        Invalid fields names::
-
-            >>> from io import StringIO
-            >>> file = StringIO(r'''t,E,j
-            ... 0,0,0
-            ... 1,1,1''')
-            >>> from .csvloader import CSVloader
-            >>> csv = CSVloader(file)
-            >>> csv.validate_fields([{'name':'x'},{'name':'v'},{'name':'j'}])
-            Traceback (most recent call last):
-            ...
-            KeyError: "No field describes the column with names '['t', 'E']'."
+            >>> CSVloader.create_field('voltage')
+            {'name': 'voltage', 'comment': 'Created by echemdb-converters.'}
 
         """
-        from frictionless import Schema
-
-        schema = Schema(fields=fields)
-
-        if not len(self.column_names) == len(schema.field_names):
-            raise Exception(
-                f"The number of columns ({len(self.column_names)}) in the CSV does not match the number of provided fields ({len(schema.field_names)})."
-            )
-
-        unnamed = [name for name in self.column_names if not name in schema.field_names]
-
-        if len(unnamed) > 0:
-            raise KeyError(f"No field describes the column with names '{unnamed}'.")
-
-        return True
+        return {"name": name, 'comment': 'Created by echemdb-converters.'}
 
     @property
     def delimiter(self):

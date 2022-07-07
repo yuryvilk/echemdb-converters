@@ -5,6 +5,8 @@ Converts ECLab MPT files into an echemdb datapackage compatible CSV object.
 #  This file is part of echemdb-converters.
 #
 #        Copyright (C) 2022 Albert Engstfeld
+#        Copyright (C) 2022 Johannes Hermann
+#        Copyright (C) 2022 Julian Rüth
 #
 #  echemdb-converters is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
