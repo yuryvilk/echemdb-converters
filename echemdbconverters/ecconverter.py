@@ -333,3 +333,7 @@ class ECConverter:
 
         """
         return self._df[self.column_names]
+
+    @property
+    def metadata(self):
+        return self.loader.metadata
