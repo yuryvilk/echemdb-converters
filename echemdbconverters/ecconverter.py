@@ -102,18 +102,10 @@ class ECConverter:
         r"""
         Calls a specific `converter` based on a given device.
         """
-        # import here to avoid cyclical dependencies
-        # TODO: Implement the following converters
-        # TODO: from .thiolab_labview_converter import ThiolabLabviewConverter
-        # TODO: from .genericcsvconverter import GenericCsvConverter
-        # TODO: from .eclabconverter import EclabConverter
-        # The following dict is a placeholder for further specific converters.
-        # They hare here to get an idea what this function should do. These are currently not tested.
         from .eclabconverter import ECLabConverter
 
-        devices = {  #'generic' : GenericCsvLoader, # Generic CSV converter
+        devices = {
             "eclab": ECLabConverter,  # Biologic-EClab device
-            #'Thiolab Labview' : ThiolabLabviewLoader, # Labview data recorder formerly used in the thiolab
         }
 
         if device in devices:

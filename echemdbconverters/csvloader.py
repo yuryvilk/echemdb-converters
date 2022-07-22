@@ -227,13 +227,9 @@ class CSVloader:
             1     2       1   1.4       5          1
 
         """
-        # import here to avoid cyclic dependencies
-        # ::TODO: Implement the following converters
-        # ::TODO: from .thiolab_labview_converter import ThiolabLabviewConverter
-        # ::TODO: from .genericcsvconverter import GenericCsvConverter
         from .eclabloader import ECLabLoader
 
-        devices = {  #'generic' : GenericCsvLoader, # Generic CSV converter
+        devices = {
             "eclab": ECLabLoader,  # Biologic-EClab device
         }
 
