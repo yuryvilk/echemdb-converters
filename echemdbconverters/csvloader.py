@@ -228,9 +228,12 @@ class CSVloader:
 
         """
         from .eclabloader import ECLabLoader
+        from .labsolutionsloader import LabSolutionsLoader
 
         devices = {
-            "eclab": ECLabLoader,  # Biologic-EClab device
+            "eclab": ECLabLoader,    # Biologic-EClab device
+            'hplc': LabSolutionsLoader,    # Shimadzu HPLC device
+            'gc': LabSolutionsLoader    # Shimadzu GC device
         }
 
         if device in devices:
