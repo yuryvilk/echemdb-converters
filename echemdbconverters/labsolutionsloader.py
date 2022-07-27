@@ -125,9 +125,9 @@ class LabSolutionsLoader(CSVloader):
         return "."
 
     def blocks(self):
-        matches = []
-
-        for line in self.file.readlines():
+        matches = {}
+        # empty_lines = []
+        for ln, line in enumerate(self.file.readlines()):
             import re
 
             match = re.match(
@@ -135,10 +135,18 @@ class LabSolutionsLoader(CSVloader):
             )
 
             if match:
-                matches.append(match)
-        self.file
+                matches[match] = [ln]
+                for ln, line in enumerate(self.file.readlines()[ln:]):
+                    if len(line.split()) < 1:
+                        matches[match].append(ln)
+                        break
+            # if len(line.split()) < 1:
+            #     empty_lines.append(ln)
+        print(matches)
+        # self.file
 
 
 from pathlib import Path    
 doc = Path("D:\Research Data\Yury Vilk\OwnCloud\PhD\Analytics\HPLC\RawData\Luis\\20220715\LK005_df10_240min.txt")
 f = LabSolutionsLoader(doc.open())
+f.blocks()
