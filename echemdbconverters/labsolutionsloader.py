@@ -23,8 +23,10 @@ from Shimadzu HPLC or GC systems and converted to ASCII from PostRun or Batch.
 #  along with echemdb-converters. If not, see <https://www.gnu.org/licenses/>.
 # ********************************************************************
 
+from tkinter import E
 from csvloader import CSVloader
 
+"""
 detectors = {
     'UV-ViS': {},
     'RID': {},
@@ -82,27 +84,56 @@ compoundtables = {
         'block_length_line_idx_shift' : 0,  #TODO: fill appropriate values
         'block_start_line_shift' : 0  #TODO: fill appropriate values
     }
-    }
+    }"""
 
 class LabSolutionsLoader(CSVloader):
 
     @property
-    def header_lines(self):
-        pass
+    def header_lines(self, block):
+        return self.blocks[block][-2]
+
+    @property
+    def data(self, block):
+        r"""
+        A file like object with the data of the CSV without header lines.
+
+        EXAMPLES::
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVloader(file)
+            >>> type(csv.data)
+            <class '_io.StringIO'>
+
+            >>> from io import StringIO
+            >>> file = StringIO(r'''a,b
+            ... 0,0
+            ... 1,1''')
+            >>> csv = CSVloader(file)
+            >>> csv.data.readlines()
+            ['0,0\n', '1,1']
+
+        """
+        from io import StringIO
+
+        return StringIO(
+            "".join(line for line in self.file.readlines()[self.header_lines : self.blocks[block][-1]])
+        )
 
     @property
     def df(self):
-        # import pandas as pd
+        import pandas as pd
 
-        # return pd.read_csv(
-        #     self.file,
-        #     sep=self.delimiter,
-        #     header=self.header_lines,
-        #     decimal=self.decimal,
-        #     encoding="latin1",
-        #     skip_blank_lines=False,
-        # )
-        pass
+        return pd.read_csv(
+            self.file,
+            sep=self.delimiter,
+            header=self.header_lines,
+            decimal=self.decimal,
+            encoding="latin1",
+            skip_blank_lines=False,
+        )
 
     def create_fields(self):
         # TODO:: When the file contains an unnamed column an this is not 13, this approach will fail. (see: #8)
@@ -115,18 +146,18 @@ class LabSolutionsLoader(CSVloader):
         pass
 
     @property
-    def decimal(self):
+    def decimal(self, block):
         # The values in the MPT are always tab separated.
         # The data in the file only consist of numbers.
         # Hence we simply determine if the line contains a comma or not.
         if "," in self.data.readlines()[0]:
             return ","
+        else:
+            return "."
 
-        return "."
-
+    @property
     def blocks(self):
-        matches = {}
-        # empty_lines = []
+        self.matches = {} # 'block name' : [block line start, data header line, block end]
         for ln, line in enumerate(self.file.readlines()):
             import re
 
@@ -135,18 +166,28 @@ class LabSolutionsLoader(CSVloader):
             )
 
             if match:
-                matches[match] = [ln]
-                for ln, line in enumerate(self.file.readlines()[ln:]):
+                self.matches[match.group()] = [ln]
+                for l, line in enumerate(self.file.readlines()[ln:]):
                     if len(line.split()) < 1:
-                        matches[match].append(ln)
+                        self.matches[match.group()].append(ln+l)
                         break
-            # if len(line.split()) < 1:
-            #     empty_lines.append(ln)
-        print(matches)
-        # self.file
-
+        for values in self.matches.values():
+            try:   
+                for ln, line in enumerate(self.file.readlines()[values[0]:values[1]]):
+                    info = re.match('# of', line)
+                    if info:
+                        info = info.string.rstrip().split('\t')
+                        data_block_length = int(info[-1])
+                        if data_block_length != 0:
+                            data_header_line = values[1]- int(info[-1]) - 1
+                            values.insert(1, data_header_line)
+                        else:
+                            pass
+            except IndexError:
+                pass
+        return self.matches
 
 from pathlib import Path    
 doc = Path("D:\Research Data\Yury Vilk\OwnCloud\PhD\Analytics\HPLC\RawData\Luis\\20220715\LK005_df10_240min.txt")
 f = LabSolutionsLoader(doc.open())
-f.blocks()
+b = f.blocks
