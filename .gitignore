@@ -80,6 +80,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+# LabSolutions_debug.ipynb
 
 # IPython
 profile_default/

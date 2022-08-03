@@ -24,7 +24,7 @@ from Shimadzu HPLC or GC systems and converted to ASCII from PostRun or Batch.
 # ********************************************************************
 
 from tkinter import E
-from csvloader import CSVloader
+from .csvloader import CSVloader
 
 """
 detectors = {
@@ -37,12 +37,12 @@ detectors = {
 chromatograms = {
     'UV-ViS': { #UV-ViS Detector (HPLC)
         'block' : [],
-        'block_length_line_idx_shift' : 2, 
+        'block_length_line_idx_shift' : 2,
         'block_start_line_shift' : 8
     },
     'RID': {    # Refractive index detector (HPLC)
         'block' : [],
-        'block_length_line_idx_shift' : 2, 
+        'block_length_line_idx_shift' : 2,
         'block_start_line_shift' : 7
     },
     'BID': {
@@ -54,12 +54,12 @@ chromatograms = {
 peaktables = {
     'UV-ViS': {
         'block' : [],
-        'block_length_line_idx_shift' : 1, 
+        'block_length_line_idx_shift' : 1,
         'block_start_line_shift' : 2
     },
     'RID': {
         'block' : [],
-        'block_length_line_idx_shift' : 1, 
+        'block_length_line_idx_shift' : 1,
         'block_start_line_shift' : 2
     },
     'BID': {
@@ -71,12 +71,12 @@ peaktables = {
 compoundtables = {
     'UV-ViS': {
         'block' : [],
-        'block_length_line_idx_shift' : 1, 
+        'block_length_line_idx_shift' : 1,
         'block_start_line_shift' : 2
     },
     'RID': {
         'block' : [],
-        'block_length_line_idx_shift' : 1, 
+        'block_length_line_idx_shift' : 1,
         'block_start_line_shift' : 2
     },
     'BID': {
@@ -156,8 +156,8 @@ class LabSolutionsLoader(CSVloader):
             return "."
 
     @property
-    def blocks(self):
-        self.matches = {} # 'block name' : [block line start, data header line, block end]
+    def matches(self):
+        matches = {} # 'block name' : [block line start, data header line, block end]
         for ln, line in enumerate(self.file.readlines()):
             import re
 
@@ -166,28 +166,57 @@ class LabSolutionsLoader(CSVloader):
             )
 
             if match:
-                self.matches[match.group()] = [ln]
+                matches[match.group()] = [ln]
                 for l, line in enumerate(self.file.readlines()[ln:]):
+        #             StringIO(
+        #     "".join(line for line in self.file.readlines()[self.header_lines + 1 :])
+        # )
                     if len(line.split()) < 1:
-                        self.matches[match.group()].append(ln+l)
+                        # matches[match.group()].append(ln+l)
                         break
-        for values in self.matches.values():
-            try:   
-                for ln, line in enumerate(self.file.readlines()[values[0]:values[1]]):
-                    info = re.match('# of', line)
-                    if info:
-                        info = info.string.rstrip().split('\t')
-                        data_block_length = int(info[-1])
-                        if data_block_length != 0:
-                            data_header_line = values[1]- int(info[-1]) - 1
-                            values.insert(1, data_header_line)
-                        else:
-                            pass
-            except IndexError:
-                pass
-        return self.matches
+        # for values in matches.values():
+        #     try:
+        #         for ln, line in enumerate(self.file.readlines()[values[0]:values[1]]):
+        #             info = re.match('# of', line)
+        #             if info:
+        #                 info = info.string.rstrip().split('\t')
+        #                 data_block_length = int(info[-1])
+        #                 if data_block_length != 0:
+        #                     data_header_line = values[1]- int(info[-1]) - 1
+        #                     values.insert(1, data_header_line)
+        #                 else:
+        #                     pass
+        #     except IndexError:
+        #         pass
+        return matches
 
-from pathlib import Path    
-doc = Path("D:\Research Data\Yury Vilk\OwnCloud\PhD\Analytics\HPLC\RawData\Luis\\20220715\LK005_df10_240min.txt")
-f = LabSolutionsLoader(doc.open())
-b = f.blocks
+        def _blocks(self):
+            for ln, line in enumerate(self.file.readlines()):
+            import re
+
+            match = re.match(
+                '\[(.*?)\]', line, re.IGNORECASE,
+            )
+
+            if match:
+                matches[match.group()] = [ln]
+                for l, line in enumerate(self.file.readlines()[ln:]):
+                    matches = {} # 'block name' : [block line start, data header line, block end]
+        #     values in matches.values():
+
+        @staticmethod
+        def get_block(block, detector):
+
+            blocks = {
+            'peaktable': BlockLoader(detector),
+            'compoundtable': BlockLoader(detector),
+            'chromatogram': BlockLoader(detector)
+            }
+
+            if device in devices:
+                return devices[device]
+
+            raise KeyError(f"Device wth name '{device}' is unknown to the loader'.")
+
+class BlockLoader(LabSolutionsLoader):
+    pass
