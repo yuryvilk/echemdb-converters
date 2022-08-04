@@ -80,12 +80,11 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-# LabSolutions_debug.ipynb
 
 # IPython
 profile_default/
 ipython_config.py
-*.ipynb
+.ipynb
 
 # pyenv
 .python-version
